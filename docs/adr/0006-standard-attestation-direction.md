@@ -9,7 +9,7 @@ Signing a custom JSON structure requires canonicalization, key management, ident
 
 ## Decision
 
-M0 and M1 emit unsigned advisory receipts only. A future authoritative signed format will align with:
+M0 emits no receipts. M1, the first receipt-producing milestone, emits unsigned advisory receipts only. A future authoritative signed format will align with:
 
 - in-toto Statement for the subject and predicate envelope;
 - an AssureCTL-specific completion-decision predicate;

@@ -56,3 +56,22 @@ func TestRunUnknownCommand(t *testing.T) {
 		t.Fatalf("stderr = %q, want usage", stderr.String())
 	}
 }
+
+func TestRunRejectsTrailingArguments(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+
+	code := run([]string{"version", "unexpected"}, &stdout, &stderr)
+
+	if code != 64 {
+		t.Fatalf("run() exit code = %d, want 64", code)
+	}
+	if stdout.Len() != 0 {
+		t.Fatalf("stdout = %q, want empty", stdout.String())
+	}
+	if !strings.Contains(stderr.String(), "unexpected argument: unexpected") {
+		t.Fatalf("stderr = %q, want trailing-argument diagnostic", stderr.String())
+	}
+	if !strings.Contains(stderr.String(), "Usage: assurectl <command>") {
+		t.Fatalf("stderr = %q, want usage", stderr.String())
+	}
+}

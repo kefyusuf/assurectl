@@ -12,3 +12,7 @@ These notes record implementation-time refinements to the M0 plan.
 - Decision validation fails closed when a normalized result claims a valid waiver for a non-waivable requirement.
 - Receipt policy provenance records every contributing layer as a separate source with digest, resolved trust status, authority basis, and source revision when applicable; the effective policy has its own digest.
 - Contributor-facing build commands write the CLI to `/tmp/assurectl`, and `/assurectl` is ignored defensively so verification does not dirty the repository.
+- Zero-argument CLI commands reject trailing arguments with usage exit code `64`.
+- Receipt schema conditionals constrain verdict/decision combinations to the deterministic decision kernel.
+- Evidence timestamp schemas add lexical RFC3339 assertions; semantic parsing and ordering remain an explicit M1 ingestion requirement.
+- The original M0 plan is marked superseded because accepted implementation refinements made its literal action pins, cache settings, ADR count, and build commands stale.

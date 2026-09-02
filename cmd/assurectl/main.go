@@ -27,9 +27,15 @@ func run(args []string, stdout, stderr io.Writer) int {
 
 	switch args[0] {
 	case "help", "-h", "--help":
+		if len(args) > 1 {
+			return rejectTrailingArgument(args[1], stderr)
+		}
 		_, _ = io.WriteString(stdout, usage)
 		return 0
 	case "version", "-v", "--version":
+		if len(args) > 1 {
+			return rejectTrailingArgument(args[1], stderr)
+		}
 		_, _ = fmt.Fprintln(stdout, buildinfo.Summary())
 		return 0
 	default:
@@ -37,4 +43,10 @@ func run(args []string, stdout, stderr io.Writer) int {
 		_, _ = io.WriteString(stderr, usage)
 		return 64
 	}
+}
+
+func rejectTrailingArgument(argument string, stderr io.Writer) int {
+	_, _ = fmt.Fprintf(stderr, "unexpected argument: %s\n\n", argument)
+	_, _ = io.WriteString(stderr, usage)
+	return 64
 }
