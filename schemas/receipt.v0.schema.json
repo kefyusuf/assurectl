@@ -27,12 +27,22 @@
     },
     "authority": {
       "type": "string",
-      "enum": ["ADVISORY", "CI_ASSERTED", "AUTHORITATIVE"]
+      "enum": [
+        "ADVISORY",
+        "CI_ASSERTED",
+        "AUTHORITATIVE"
+      ]
     },
     "subject": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["repository_uri", "base_revision", "head_revision", "change_set_algorithm", "change_set_digest"],
+      "required": [
+        "repository_uri",
+        "base_revision",
+        "head_revision",
+        "change_set_algorithm",
+        "change_set_digest"
+      ],
       "properties": {
         "repository_uri": {
           "type": "string",
@@ -59,7 +69,11 @@
     "work_unit": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "type", "objective"],
+      "required": [
+        "id",
+        "type",
+        "objective"
+      ],
       "properties": {
         "id": {
           "type": "string",
@@ -117,16 +131,29 @@
     },
     "verification_verdict": {
       "type": "string",
-      "enum": ["PASSED", "FAILED", "INDETERMINATE"]
+      "enum": [
+        "PASSED",
+        "FAILED",
+        "INDETERMINATE"
+      ]
     },
     "completion_decision": {
       "type": "string",
-      "enum": ["APPROVED", "REJECTED", "BLOCKED", "ACCEPTED_WITH_RISK"]
+      "enum": [
+        "APPROVED",
+        "REJECTED",
+        "BLOCKED",
+        "ACCEPTED_WITH_RISK"
+      ]
     },
     "verifier": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["name", "version", "protocol_version"],
+      "required": [
+        "name",
+        "version",
+        "protocol_version"
+      ],
       "properties": {
         "name": {
           "const": "assurectl"
@@ -152,7 +179,9 @@
             "const": "PASSED"
           }
         },
-        "required": ["verification_verdict"]
+        "required": [
+          "verification_verdict"
+        ]
       },
       "then": {
         "properties": {
@@ -160,7 +189,9 @@
             "const": "APPROVED"
           }
         },
-        "required": ["completion_decision"]
+        "required": [
+          "completion_decision"
+        ]
       }
     },
     {
@@ -170,7 +201,9 @@
             "const": "INDETERMINATE"
           }
         },
-        "required": ["verification_verdict"]
+        "required": [
+          "verification_verdict"
+        ]
       },
       "then": {
         "properties": {
@@ -178,7 +211,9 @@
             "const": "BLOCKED"
           }
         },
-        "required": ["completion_decision"]
+        "required": [
+          "completion_decision"
+        ]
       }
     },
     {
@@ -188,15 +223,99 @@
             "const": "FAILED"
           }
         },
-        "required": ["verification_verdict"]
+        "required": [
+          "verification_verdict"
+        ]
       },
       "then": {
         "properties": {
           "completion_decision": {
-            "enum": ["REJECTED", "BLOCKED", "ACCEPTED_WITH_RISK"]
+            "enum": [
+              "REJECTED",
+              "BLOCKED",
+              "ACCEPTED_WITH_RISK"
+            ]
           }
         },
-        "required": ["completion_decision"]
+        "required": [
+          "completion_decision"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "completion_decision": {
+            "const": "APPROVED"
+          }
+        },
+        "required": [
+          "completion_decision"
+        ]
+      },
+      "then": {
+        "properties": {
+          "requirement_results": {
+            "items": {
+              "properties": {
+                "evidence_state": {
+                  "const": "VALID"
+                },
+                "outcome": {
+                  "const": "PASSED"
+                }
+              },
+              "required": [
+                "evidence_state",
+                "outcome"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "authority": {
+            "const": "AUTHORITATIVE"
+          },
+          "completion_decision": {
+            "not": {
+              "const": "BLOCKED"
+            }
+          }
+        },
+        "required": [
+          "authority",
+          "completion_decision"
+        ]
+      },
+      "then": {
+        "properties": {
+          "contract": {
+            "type": "object",
+            "properties": {
+              "trust_status": {
+                "const": "TRUSTED"
+              }
+            },
+            "required": [
+              "trust_status"
+            ]
+          },
+          "policy": {
+            "type": "object",
+            "properties": {
+              "trust_status": {
+                "const": "TRUSTED"
+              }
+            },
+            "required": [
+              "trust_status"
+            ]
+          }
+        }
       }
     }
   ],
@@ -204,7 +323,10 @@
     "digest": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["algorithm", "value"],
+      "required": [
+        "algorithm",
+        "value"
+      ],
       "properties": {
         "algorithm": {
           "const": "sha256"
@@ -223,12 +345,20 @@
     },
     "trust_status": {
       "type": "string",
-      "enum": ["TRUSTED", "UNTRUSTED", "UNRESOLVED"]
+      "enum": [
+        "TRUSTED",
+        "UNTRUSTED",
+        "UNRESOLVED"
+      ]
     },
     "digested_input": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["source", "digest", "trust_status"],
+      "required": [
+        "source",
+        "digest",
+        "trust_status"
+      ],
       "properties": {
         "source": {
           "type": "string",
@@ -245,11 +375,23 @@
     "policy_source": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["layer", "source", "digest", "trust_status", "authority_basis"],
+      "required": [
+        "layer",
+        "source",
+        "digest",
+        "trust_status",
+        "authority_basis"
+      ],
       "properties": {
         "layer": {
           "type": "string",
-          "enum": ["protocol_baseline", "organization", "project", "assurance_profile", "work_unit_contract"]
+          "enum": [
+            "protocol_baseline",
+            "organization",
+            "project",
+            "assurance_profile",
+            "work_unit_contract"
+          ]
         },
         "source": {
           "type": "string",
@@ -283,13 +425,20 @@
           "if": {
             "properties": {
               "authority_basis": {
-                "enum": ["TRUSTED_BASE", "CANDIDATE_HEAD"]
+                "enum": [
+                  "TRUSTED_BASE",
+                  "CANDIDATE_HEAD"
+                ]
               }
             },
-            "required": ["authority_basis"]
+            "required": [
+              "authority_basis"
+            ]
           },
           "then": {
-            "required": ["source_revision"]
+            "required": [
+              "source_revision"
+            ]
           }
         }
       ]
@@ -297,7 +446,11 @@
     "resolved_policy": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["sources", "effective_digest", "trust_status"],
+      "required": [
+        "sources",
+        "effective_digest",
+        "trust_status"
+      ],
       "properties": {
         "sources": {
           "type": "array",
@@ -318,7 +471,10 @@
     "evidence_reference": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "digest"],
+      "required": [
+        "id",
+        "digest"
+      ],
       "properties": {
         "id": {
           "type": "string",
@@ -332,7 +488,13 @@
     "finding": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["code", "category", "severity", "message", "blocking"],
+      "required": [
+        "code",
+        "category",
+        "severity",
+        "message",
+        "blocking"
+      ],
       "properties": {
         "code": {
           "type": "string",
@@ -354,7 +516,11 @@
         },
         "severity": {
           "type": "string",
-          "enum": ["INFO", "WARNING", "ERROR"]
+          "enum": [
+            "INFO",
+            "WARNING",
+            "ERROR"
+          ]
         },
         "requirement_id": {
           "type": "string",
@@ -380,11 +546,17 @@
     "waiver_target": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["kind", "id"],
+      "required": [
+        "kind",
+        "id"
+      ],
       "properties": {
         "kind": {
           "type": "string",
-          "enum": ["REQUIREMENT", "FINDING"]
+          "enum": [
+            "REQUIREMENT",
+            "FINDING"
+          ]
         },
         "id": {
           "type": "string",
@@ -396,7 +568,10 @@
     "waiver_scope": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["repository_uri", "work_unit_id"],
+      "required": [
+        "repository_uri",
+        "work_unit_id"
+      ],
       "properties": {
         "repository_uri": {
           "type": "string",
@@ -417,7 +592,10 @@
     "waiver_approver": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["identity", "authority"],
+      "required": [
+        "identity",
+        "authority"
+      ],
       "properties": {
         "identity": {
           "type": "string",
@@ -480,7 +658,10 @@
         },
         "status": {
           "type": "string",
-          "enum": ["VALID", "INVALID"]
+          "enum": [
+            "VALID",
+            "INVALID"
+          ]
         },
         "digest": {
           "$ref": "#/$defs/digest",
@@ -491,7 +672,12 @@
     "requirement_result": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["requirement_id", "evidence_state", "waivable", "waiver_status"],
+      "required": [
+        "requirement_id",
+        "evidence_state",
+        "waivable",
+        "waiver_status"
+      ],
       "properties": {
         "requirement_id": {
           "type": "string",
@@ -499,18 +685,32 @@
         },
         "evidence_state": {
           "type": "string",
-          "enum": ["VALID", "INVALID", "MISSING", "STALE", "UNTRUSTED"]
+          "enum": [
+            "VALID",
+            "INVALID",
+            "MISSING",
+            "STALE",
+            "UNTRUSTED"
+          ]
         },
         "outcome": {
           "type": "string",
-          "enum": ["PASSED", "FAILED", "ERROR"]
+          "enum": [
+            "PASSED",
+            "FAILED",
+            "ERROR"
+          ]
         },
         "waivable": {
           "type": "boolean"
         },
         "waiver_status": {
           "type": "string",
-          "enum": ["NOT_APPLICABLE", "VALID", "INVALID"]
+          "enum": [
+            "NOT_APPLICABLE",
+            "VALID",
+            "INVALID"
+          ]
         }
       },
       "allOf": [
@@ -521,10 +721,44 @@
                 "const": "VALID"
               }
             },
-            "required": ["evidence_state"]
+            "required": [
+              "evidence_state"
+            ]
           },
           "then": {
-            "required": ["outcome"]
+            "required": [
+              "outcome"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "waiver_status": {
+                "const": "VALID"
+              }
+            },
+            "required": [
+              "waiver_status"
+            ]
+          },
+          "then": {
+            "properties": {
+              "waivable": {
+                "const": true
+              },
+              "evidence_state": {
+                "const": "VALID"
+              },
+              "outcome": {
+                "const": "FAILED"
+              }
+            },
+            "required": [
+              "waivable",
+              "evidence_state",
+              "outcome"
+            ]
           }
         }
       ]
