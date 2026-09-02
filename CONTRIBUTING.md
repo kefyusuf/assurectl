@@ -14,8 +14,8 @@ AssureCTL is trust-sensitive infrastructure. Small semantic changes can alter me
 Run all of the following before requesting review:
 
 ```bash
-files=$(find . -name '*.go' -type f -not -path './vendor/*')
-test -z "$(gofmt -l $files)"
+mapfile -d '' files < <(find . -name '*.go' -type f -not -path './vendor/*' -print0)
+test -z "$(gofmt -l "${files[@]}")"
 go vet ./...
 go test -race ./...
 go build ./cmd/assurectl

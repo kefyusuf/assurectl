@@ -62,6 +62,7 @@ func TestEvaluateRejectsMalformedInputsFailClosed(t *testing.T) {
 		{"invalid evidence state", requirement("unit-tests", domain.EvidenceState("UNKNOWN"), "", false, domain.WaiverNotApplicable), "evidence_state"},
 		{"invalid outcome", requirement("unit-tests", domain.EvidenceValid, domain.ObservedOutcome("UNKNOWN"), false, domain.WaiverNotApplicable), "outcome"},
 		{"invalid waiver status", requirement("unit-tests", domain.EvidenceValid, domain.OutcomePassed, false, domain.WaiverStatus("UNKNOWN")), "waiver_status"},
+		{"valid waiver on non-waivable requirement", requirement("unit-tests", domain.EvidenceValid, domain.OutcomeFailed, false, domain.WaiverValid), "waiver_status"},
 	}
 
 	want := evaluation(domain.VerdictIndeterminate, domain.DecisionBlocked)

@@ -8,3 +8,5 @@ These notes record implementation-time refinements to the M0 plan.
 - ADR-0007 removes self-declared authority from policy and verification-contract payloads. Trust is resolved externally and recorded by the verifier.
 - Receipt v0 separates actual evidence references from requirement evaluation results so `MISSING` evidence does not require a fabricated digest or outcome.
 - Local verification used the available Go 1.23.2 toolchain with a temporary local `go` directive override. GitHub Actions is the authoritative compatibility check for the committed Go 1.26.0 floor and the 1.26.x/1.27.x matrix.
+- CI disables persisted checkout credentials and sets `GOTOOLCHAIN=local` to prevent unintended toolchain acquisition during verification.
+- Decision validation fails closed when a normalized result claims a valid waiver for a non-waivable requirement.

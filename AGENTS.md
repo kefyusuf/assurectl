@@ -12,6 +12,8 @@ Before editing, read:
 4. `docs/threat-model/v0.md`;
 5. `CONTRIBUTING.md`.
 
+Accepted ADRs and explicit design amendments take precedence over conflicting examples in older plans or design drafts.
+
 ## Non-negotiable rules
 
 - Do not claim completion without fresh command output from the full relevant verification set.
