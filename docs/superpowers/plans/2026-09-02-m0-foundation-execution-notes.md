@@ -16,7 +16,9 @@ These notes record implementation-time refinements to the M0 plan.
 - Receipt schema conditionals mirror the deterministic decision kernel, including `FAILED/BLOCKED` for mixed known-failure and indeterminate verification states.
 - Technical verdicts are derived from requirement results: all `VALID/PASSED` for `PASSED`; at least one `VALID/FAILED` for `FAILED`; otherwise at least one unavailable or errored result and no established failure for `INDETERMINATE`.
 - An `APPROVED` receipt requires every requirement result to be established as `VALID/PASSED`.
+- `REJECTED` requires only established `VALID` results and at least one failed requirement that is non-waivable or lacks a valid waiver; indeterminate results cannot be represented as rejection.
 - `ACCEPTED_WITH_RISK` requires only established `VALID` results, at least one failed result, a valid waiver status for every failed result, and at least one supplied waiver record resolved as valid.
+- `BLOCKED` requires at least one indeterminate requirement result or a finding marked `blocking: true`; an established failure alone must resolve to rejection or accepted risk.
 - Exact failed-requirement-to-waiver-record referential matching remains a semantic receipt-builder invariant because JSON Schema cannot compare identifiers across independent arrays.
 - Any receipt decision other than `BLOCKED` requires all findings to be non-blocking.
 - A non-`BLOCKED` `AUTHORITATIVE` receipt requires trusted contract and effective-policy inputs.
