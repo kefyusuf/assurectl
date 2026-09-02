@@ -9,7 +9,7 @@ AssureCTL separates software-change inputs from the authority that issues a comp
 | `cmd/assurectl` | Parse top-level commands, route output, map exit codes | Make domain decisions |
 | `internal/buildinfo` | Expose linker-injected build metadata | Read repository or policy state |
 | `internal/domain` | Define closed vocabulary and transport-neutral records | Perform I/O or policy evaluation |
-| `internal/decision` | Apply deterministic verdict and completion-decision precedence | Load evidence, approve waivers, or mutate inputs |
+| `internal/decision` | Validate normalized requirement results and findings, then apply deterministic verdict and completion-decision precedence | Load evidence, resolve finding causes, approve waivers, or mutate inputs |
 
 ## Planned evaluation flow
 
@@ -32,6 +32,12 @@ subject resolver ---- contract loader
                  v
        verification engine
                  |
+          +------+------+
+          |             |
+          v             v
+ requirement results  findings
+          |             |
+          +------+------+
                  v
           waiver engine
                  |
@@ -42,7 +48,7 @@ subject resolver ---- contract loader
           receipt builder
 ```
 
-M0 implements only the closed domain vocabulary and the final decision-precedence kernel. All I/O-heavy components remain deferred so their trust requirements can be specified before code is added.
+M0 implements only the closed domain vocabulary and the final decision-precedence kernel. The kernel accepts normalized requirement results and findings. A blocking finding yields `INDETERMINATE/BLOCKED` when no established failure exists and preserves `FAILED/BLOCKED` when a known failed requirement also exists. All I/O-heavy components remain deferred so their trust requirements can be specified before code is added.
 
 ## Dependency direction
 
@@ -53,4 +59,4 @@ M0 implements only the closed domain vocabulary and the final decision-precedenc
 
 ## Determinism
 
-For normalized inputs, the decision engine performs no I/O, reads no clock, uses no randomness, mutates no input, and makes no network request. Evidence validation and policy resolution will normalize their outputs before the decision engine is called.
+For normalized inputs, the decision engine performs no I/O, reads no clock, uses no randomness, mutates no input, and makes no network request. Evidence validation, finding generation, policy resolution, and waiver authorization normalize their outputs before the decision engine is called.
