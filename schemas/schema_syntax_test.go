@@ -79,20 +79,26 @@ func TestReceiptPolicyRecordsAllResolvedSources(t *testing.T) {
 
 func TestReceiptConstrainsVerdictDecisionMappings(t *testing.T) {
 	root := readSchema(t, "receipt.v0.schema.json")
-	rulesRaw, ok := root["allOf"].([]any)
-	if !ok {
-		t.Fatalf("receipt allOf = %#v, want array", root["allOf"])
-	}
+	rulesRaw := mustArray(t, root["allOf"], "allOf")
 
 	got := make(map[string][]string)
 	for index, raw := range rulesRaw {
 		rule := mustObject(t, raw, "allOf rule")
-		condition := mustObject(t, rule["if"], "allOf.if")
-		conditionProperties := mustObject(t, condition["properties"], "allOf.if.properties")
-		verdictSchema := mustObject(t, conditionProperties["verification_verdict"], "verification_verdict condition")
+		condition, ok := rule["if"].(map[string]any)
+		if !ok {
+			continue
+		}
+		conditionProperties, ok := condition["properties"].(map[string]any)
+		if !ok {
+			continue
+		}
+		verdictSchema, ok := conditionProperties["verification_verdict"].(map[string]any)
+		if !ok {
+			continue
+		}
 		verdict, ok := verdictSchema["const"].(string)
 		if !ok || verdict == "" {
-			t.Fatalf("allOf[%d] verdict const = %#v, want non-empty string", index, verdictSchema["const"])
+			continue
 		}
 
 		consequence := mustObject(t, rule["then"], "allOf.then")
@@ -107,10 +113,7 @@ func TestReceiptConstrainsVerdictDecisionMappings(t *testing.T) {
 			}
 			got[verdict] = []string{decision}
 		case decisionSchema["enum"] != nil:
-			values, ok := decisionSchema["enum"].([]any)
-			if !ok {
-				t.Fatalf("allOf[%d] decision enum = %#v, want array", index, decisionSchema["enum"])
-			}
+			values := mustArray(t, decisionSchema["enum"], "completion_decision.enum")
 			for _, value := range values {
 				decision, ok := value.(string)
 				if !ok {
@@ -132,6 +135,75 @@ func TestReceiptConstrainsVerdictDecisionMappings(t *testing.T) {
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("verdict-decision mappings = %#v, want %#v", got, want)
 	}
+}
+
+func TestReceiptApprovalRequiresPassingEstablishedRequirements(t *testing.T) {
+	root := readSchema(t, "receipt.v0.schema.json")
+	rule := findConditionalRule(t, root, "completion_decision", "APPROVED")
+	then := mustObject(t, rule["then"], "approved.then")
+	properties := mustObject(t, then["properties"], "approved.then.properties")
+	requirementResults := mustObject(t, properties["requirement_results"], "approved.requirement_results")
+	items := mustObject(t, requirementResults["items"], "approved.requirement_results.items")
+	itemProperties := mustObject(t, items["properties"], "approved.requirement_results.items.properties")
+	assertConst(t, itemProperties["evidence_state"], "VALID", "approved evidence_state")
+	assertConst(t, itemProperties["outcome"], "PASSED", "approved outcome")
+	assertRequiredFields(t, items, "evidence_state", "outcome")
+}
+
+func TestAuthoritativeNonBlockedReceiptsRequireTrustedInputs(t *testing.T) {
+	root := readSchema(t, "receipt.v0.schema.json")
+	rule := findConditionalRule(t, root, "authority", "AUTHORITATIVE")
+	condition := mustObject(t, rule["if"], "authoritative.if")
+	conditionProperties := mustObject(t, condition["properties"], "authoritative.if.properties")
+	decision := mustObject(t, conditionProperties["completion_decision"], "authoritative completion_decision")
+	not := mustObject(t, decision["not"], "authoritative completion_decision.not")
+	if got := not["const"]; got != "BLOCKED" {
+		t.Fatalf("authoritative non-blocked condition = %#v, want BLOCKED exclusion", got)
+	}
+
+	then := mustObject(t, rule["then"], "authoritative.then")
+	thenProperties := mustObject(t, then["properties"], "authoritative.then.properties")
+	for _, input := range []string{"contract", "policy"} {
+		inputSchema := mustObject(t, thenProperties[input], "authoritative "+input)
+		inputProperties := mustObject(t, inputSchema["properties"], "authoritative "+input+".properties")
+		assertConst(t, inputProperties["trust_status"], "TRUSTED", "authoritative "+input+" trust_status")
+		assertRequiredFields(t, inputSchema, "trust_status")
+	}
+}
+
+func TestRequirementResultValidWaiverRequiresWaivableFailure(t *testing.T) {
+	root := readSchema(t, "receipt.v0.schema.json")
+	defs := mustObject(t, root["$defs"], "$defs")
+	requirementResult := mustObject(t, defs["requirement_result"], "$defs.requirement_result")
+	rules := mustArray(t, requirementResult["allOf"], "$defs.requirement_result.allOf")
+
+	var matched map[string]any
+	for _, raw := range rules {
+		rule := mustObject(t, raw, "requirement_result rule")
+		condition, ok := rule["if"].(map[string]any)
+		if !ok {
+			continue
+		}
+		properties, ok := condition["properties"].(map[string]any)
+		if !ok {
+			continue
+		}
+		waiverStatus, ok := properties["waiver_status"].(map[string]any)
+		if ok && waiverStatus["const"] == "VALID" {
+			matched = rule
+			break
+		}
+	}
+	if matched == nil {
+		t.Fatal("requirement_result has no conditional for waiver_status VALID")
+	}
+
+	then := mustObject(t, matched["then"], "valid waiver.then")
+	properties := mustObject(t, then["properties"], "valid waiver.then.properties")
+	assertConst(t, properties["waivable"], true, "valid waiver waivable")
+	assertConst(t, properties["evidence_state"], "VALID", "valid waiver evidence_state")
+	assertConst(t, properties["outcome"], "FAILED", "valid waiver outcome")
+	assertRequiredFields(t, then, "waivable", "evidence_state", "outcome")
 }
 
 func TestReceiptRequiresAtLeastOneRequirementResult(t *testing.T) {
@@ -259,6 +331,28 @@ func TestEvidenceTimestampPatternsRejectMalformedValues(t *testing.T) {
 	}
 }
 
+func findConditionalRule(t *testing.T, root map[string]any, property string, value any) map[string]any {
+	t.Helper()
+	rules := mustArray(t, root["allOf"], "allOf")
+	for _, raw := range rules {
+		rule := mustObject(t, raw, "conditional rule")
+		condition, ok := rule["if"].(map[string]any)
+		if !ok {
+			continue
+		}
+		properties, ok := condition["properties"].(map[string]any)
+		if !ok {
+			continue
+		}
+		propertySchema, ok := properties[property].(map[string]any)
+		if ok && reflect.DeepEqual(propertySchema["const"], value) {
+			return rule
+		}
+	}
+	t.Fatalf("no conditional rule found for %s = %#v", property, value)
+	return nil
+}
+
 func mustObject(t *testing.T, value any, path string) map[string]any {
 	t.Helper()
 	object, ok := value.(map[string]any)
@@ -268,12 +362,18 @@ func mustObject(t *testing.T, value any, path string) map[string]any {
 	return object
 }
 
+func mustArray(t *testing.T, value any, path string) []any {
+	t.Helper()
+	array, ok := value.([]any)
+	if !ok {
+		t.Fatalf("%s = %#v, want array", path, value)
+	}
+	return array
+}
+
 func assertRequiredFields(t *testing.T, schema map[string]any, fields ...string) {
 	t.Helper()
-	requiredRaw, ok := schema["required"].([]any)
-	if !ok {
-		t.Fatalf("required = %#v, want array", schema["required"])
-	}
+	requiredRaw := mustArray(t, schema["required"], "required")
 	required := make(map[string]bool, len(requiredRaw))
 	for _, item := range requiredRaw {
 		name, ok := item.(string)
@@ -297,12 +397,17 @@ func assertRef(t *testing.T, value any, want, path string) {
 	}
 }
 
+func assertConst(t *testing.T, value any, want any, path string) {
+	t.Helper()
+	object := mustObject(t, value, path)
+	if got := object["const"]; !reflect.DeepEqual(got, want) {
+		t.Fatalf("%s.const = %#v, want %#v", path, got, want)
+	}
+}
+
 func assertStringEnum(t *testing.T, schema map[string]any, want []string) {
 	t.Helper()
-	raw, ok := schema["enum"].([]any)
-	if !ok {
-		t.Fatalf("enum = %#v, want array", schema["enum"])
-	}
+	raw := mustArray(t, schema["enum"], "enum")
 	got := make([]string, 0, len(raw))
 	for _, value := range raw {
 		text, ok := value.(string)

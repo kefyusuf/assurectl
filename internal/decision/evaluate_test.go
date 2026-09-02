@@ -36,7 +36,7 @@ func TestEvaluateDecisionTable(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt := tt
+		t := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			got, err := Evaluate(tt.requirements)
@@ -63,11 +63,13 @@ func TestEvaluateRejectsMalformedInputsFailClosed(t *testing.T) {
 		{"invalid outcome", requirement("unit-tests", domain.EvidenceValid, domain.ObservedOutcome("UNKNOWN"), false, domain.WaiverNotApplicable), "outcome"},
 		{"invalid waiver status", requirement("unit-tests", domain.EvidenceValid, domain.OutcomePassed, false, domain.WaiverStatus("UNKNOWN")), "waiver_status"},
 		{"valid waiver on non-waivable requirement", requirement("unit-tests", domain.EvidenceValid, domain.OutcomeFailed, false, domain.WaiverValid), "waiver_status"},
+		{"valid waiver on passing requirement", requirement("unit-tests", domain.EvidenceValid, domain.OutcomePassed, true, domain.WaiverValid), "waiver_status"},
+		{"valid waiver on indeterminate requirement", requirement("unit-tests", domain.EvidenceMissing, "", true, domain.WaiverValid), "waiver_status"},
 	}
 
 	want := evaluation(domain.VerdictIndeterminate, domain.DecisionBlocked)
 	for _, tt := range tests {
-		tt := tt
+		t := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			got, err := Evaluate([]domain.RequirementResult{tt.requirement})
