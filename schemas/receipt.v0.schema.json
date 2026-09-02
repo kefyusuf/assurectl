@@ -27,22 +27,12 @@
     },
     "authority": {
       "type": "string",
-      "enum": [
-        "ADVISORY",
-        "CI_ASSERTED",
-        "AUTHORITATIVE"
-      ]
+      "enum": ["ADVISORY", "CI_ASSERTED", "AUTHORITATIVE"]
     },
     "subject": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "repository_uri",
-        "base_revision",
-        "head_revision",
-        "change_set_algorithm",
-        "change_set_digest"
-      ],
+      "required": ["repository_uri", "base_revision", "head_revision", "change_set_algorithm", "change_set_digest"],
       "properties": {
         "repository_uri": {
           "type": "string",
@@ -69,11 +59,7 @@
     "work_unit": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "id",
-        "type",
-        "objective"
-      ],
+      "required": ["id", "type", "objective"],
       "properties": {
         "id": {
           "type": "string",
@@ -112,6 +98,7 @@
     },
     "requirement_results": {
       "type": "array",
+      "minItems": 1,
       "items": {
         "$ref": "#/$defs/requirement_result"
       }
@@ -125,34 +112,21 @@
     "waivers": {
       "type": "array",
       "items": {
-        "$ref": "#/$defs/waiver_reference"
+        "$ref": "#/$defs/waiver_record"
       }
     },
     "verification_verdict": {
       "type": "string",
-      "enum": [
-        "PASSED",
-        "FAILED",
-        "INDETERMINATE"
-      ]
+      "enum": ["PASSED", "FAILED", "INDETERMINATE"]
     },
     "completion_decision": {
       "type": "string",
-      "enum": [
-        "APPROVED",
-        "REJECTED",
-        "BLOCKED",
-        "ACCEPTED_WITH_RISK"
-      ]
+      "enum": ["APPROVED", "REJECTED", "BLOCKED", "ACCEPTED_WITH_RISK"]
     },
     "verifier": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "name",
-        "version",
-        "protocol_version"
-      ],
+      "required": ["name", "version", "protocol_version"],
       "properties": {
         "name": {
           "const": "assurectl"
@@ -167,8 +141,7 @@
       }
     },
     "evaluated_at": {
-      "type": "string",
-      "format": "date-time"
+      "$ref": "#/$defs/rfc3339_timestamp"
     }
   },
   "allOf": [
@@ -179,9 +152,7 @@
             "const": "PASSED"
           }
         },
-        "required": [
-          "verification_verdict"
-        ]
+        "required": ["verification_verdict"]
       },
       "then": {
         "properties": {
@@ -189,9 +160,7 @@
             "const": "APPROVED"
           }
         },
-        "required": [
-          "completion_decision"
-        ]
+        "required": ["completion_decision"]
       }
     },
     {
@@ -201,9 +170,7 @@
             "const": "INDETERMINATE"
           }
         },
-        "required": [
-          "verification_verdict"
-        ]
+        "required": ["verification_verdict"]
       },
       "then": {
         "properties": {
@@ -211,9 +178,7 @@
             "const": "BLOCKED"
           }
         },
-        "required": [
-          "completion_decision"
-        ]
+        "required": ["completion_decision"]
       }
     },
     {
@@ -223,22 +188,15 @@
             "const": "FAILED"
           }
         },
-        "required": [
-          "verification_verdict"
-        ]
+        "required": ["verification_verdict"]
       },
       "then": {
         "properties": {
           "completion_decision": {
-            "enum": [
-              "REJECTED",
-              "ACCEPTED_WITH_RISK"
-            ]
+            "enum": ["REJECTED", "BLOCKED", "ACCEPTED_WITH_RISK"]
           }
         },
-        "required": [
-          "completion_decision"
-        ]
+        "required": ["completion_decision"]
       }
     }
   ],
@@ -246,10 +204,7 @@
     "digest": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "algorithm",
-        "value"
-      ],
+      "required": ["algorithm", "value"],
       "properties": {
         "algorithm": {
           "const": "sha256"
@@ -260,22 +215,20 @@
         }
       }
     },
+    "rfc3339_timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](\\.[0-9]+)?(Z|[+-]([01][0-9]|2[0-3]):[0-5][0-9])$",
+      "description": "RFC3339 timestamp. The pattern is a lexical assertion; ingestion MUST parse the value and reject impossible calendar values. Time-order constraints are validated semantically."
+    },
     "trust_status": {
       "type": "string",
-      "enum": [
-        "TRUSTED",
-        "UNTRUSTED",
-        "UNRESOLVED"
-      ]
+      "enum": ["TRUSTED", "UNTRUSTED", "UNRESOLVED"]
     },
     "digested_input": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "source",
-        "digest",
-        "trust_status"
-      ],
+      "required": ["source", "digest", "trust_status"],
       "properties": {
         "source": {
           "type": "string",
@@ -292,23 +245,11 @@
     "policy_source": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "layer",
-        "source",
-        "digest",
-        "trust_status",
-        "authority_basis"
-      ],
+      "required": ["layer", "source", "digest", "trust_status", "authority_basis"],
       "properties": {
         "layer": {
           "type": "string",
-          "enum": [
-            "protocol_baseline",
-            "organization",
-            "project",
-            "assurance_profile",
-            "work_unit_contract"
-          ]
+          "enum": ["protocol_baseline", "organization", "project", "assurance_profile", "work_unit_contract"]
         },
         "source": {
           "type": "string",
@@ -342,20 +283,13 @@
           "if": {
             "properties": {
               "authority_basis": {
-                "enum": [
-                  "TRUSTED_BASE",
-                  "CANDIDATE_HEAD"
-                ]
+                "enum": ["TRUSTED_BASE", "CANDIDATE_HEAD"]
               }
             },
-            "required": [
-              "authority_basis"
-            ]
+            "required": ["authority_basis"]
           },
           "then": {
-            "required": [
-              "source_revision"
-            ]
+            "required": ["source_revision"]
           }
         }
       ]
@@ -363,11 +297,7 @@
     "resolved_policy": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "sources",
-        "effective_digest",
-        "trust_status"
-      ],
+      "required": ["sources", "effective_digest", "trust_status"],
       "properties": {
         "sources": {
           "type": "array",
@@ -388,10 +318,7 @@
     "evidence_reference": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "id",
-        "digest"
-      ],
+      "required": ["id", "digest"],
       "properties": {
         "id": {
           "type": "string",
@@ -405,24 +332,29 @@
     "finding": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "code",
-        "severity",
-        "message",
-        "blocking"
-      ],
+      "required": ["code", "category", "severity", "message", "blocking"],
       "properties": {
         "code": {
           "type": "string",
           "minLength": 1
         },
-        "severity": {
+        "category": {
           "type": "string",
           "enum": [
-            "INFO",
-            "WARNING",
-            "ERROR"
+            "SUBJECT",
+            "CONTRACT",
+            "POLICY",
+            "EVIDENCE",
+            "VERIFICATION",
+            "WAIVER",
+            "AUTHORITY",
+            "PROTOCOL",
+            "INTERNAL"
           ]
+        },
+        "severity": {
+          "type": "string",
+          "enum": ["INFO", "WARNING", "ERROR"]
         },
         "requirement_id": {
           "type": "string",
@@ -445,42 +377,121 @@
         }
       }
     },
-    "waiver_reference": {
+    "waiver_target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "id"],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": ["REQUIREMENT", "FINDING"]
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        }
+      }
+    },
+    "waiver_scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["repository_uri", "work_unit_id"],
+      "properties": {
+        "repository_uri": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "work_unit_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "head_revision": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}([0-9a-f]{24})?$"
+        }
+      }
+    },
+    "waiver_approver": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["identity", "authority"],
+      "properties": {
+        "identity": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "authority": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024,
+          "description": "Verifier-resolved approver authority. A waiver payload cannot establish this trust by self-declaration."
+        }
+      }
+    },
+    "waiver_record": {
       "type": "object",
       "additionalProperties": false,
       "required": [
         "id",
-        "requirement_id",
-        "status"
+        "target",
+        "scope",
+        "reason",
+        "accepted_risk",
+        "approver",
+        "issued_at",
+        "expires_at",
+        "status",
+        "digest"
       ],
       "properties": {
         "id": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "maxLength": 256
         },
-        "requirement_id": {
+        "target": {
+          "$ref": "#/$defs/waiver_target"
+        },
+        "scope": {
+          "$ref": "#/$defs/waiver_scope"
+        },
+        "reason": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "accepted_risk": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "approver": {
+          "$ref": "#/$defs/waiver_approver"
+        },
+        "issued_at": {
+          "$ref": "#/$defs/rfc3339_timestamp"
+        },
+        "expires_at": {
+          "$ref": "#/$defs/rfc3339_timestamp"
         },
         "status": {
           "type": "string",
-          "enum": [
-            "NOT_APPLICABLE",
-            "VALID",
-            "INVALID"
-          ]
+          "enum": ["VALID", "INVALID"]
+        },
+        "digest": {
+          "$ref": "#/$defs/digest",
+          "description": "Digest of the normalized waiver input recorded by the verifier; it is not a signature or trust root."
         }
       }
     },
     "requirement_result": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "requirement_id",
-        "evidence_state",
-        "waivable",
-        "waiver_status"
-      ],
+      "required": ["requirement_id", "evidence_state", "waivable", "waiver_status"],
       "properties": {
         "requirement_id": {
           "type": "string",
@@ -488,32 +499,18 @@
         },
         "evidence_state": {
           "type": "string",
-          "enum": [
-            "VALID",
-            "INVALID",
-            "MISSING",
-            "STALE",
-            "UNTRUSTED"
-          ]
+          "enum": ["VALID", "INVALID", "MISSING", "STALE", "UNTRUSTED"]
         },
         "outcome": {
           "type": "string",
-          "enum": [
-            "PASSED",
-            "FAILED",
-            "ERROR"
-          ]
+          "enum": ["PASSED", "FAILED", "ERROR"]
         },
         "waivable": {
           "type": "boolean"
         },
         "waiver_status": {
           "type": "string",
-          "enum": [
-            "NOT_APPLICABLE",
-            "VALID",
-            "INVALID"
-          ]
+          "enum": ["NOT_APPLICABLE", "VALID", "INVALID"]
         }
       },
       "allOf": [
@@ -523,12 +520,11 @@
               "evidence_state": {
                 "const": "VALID"
               }
-            }
+            },
+            "required": ["evidence_state"]
           },
           "then": {
-            "required": [
-              "outcome"
-            ]
+            "required": ["outcome"]
           }
         }
       ]
