@@ -49,16 +49,7 @@ func TestSchemaRootsAreStrictValidJSON(t *testing.T) {
 }
 
 func TestReceiptPolicyRecordsAllResolvedSources(t *testing.T) {
-	data, err := os.ReadFile("receipt.v0.schema.json")
-	if err != nil {
-		t.Fatalf("os.ReadFile(receipt schema) error = %v", err)
-	}
-
-	var root map[string]any
-	if err := json.Unmarshal(data, &root); err != nil {
-		t.Fatalf("json.Unmarshal(receipt schema) error = %v", err)
-	}
-
+	root := readSchema(t, "receipt.v0.schema.json")
 	properties := mustObject(t, root["properties"], "properties")
 	policy := mustObject(t, properties["policy"], "properties.policy")
 	if got := policy["$ref"]; got != "#/$defs/resolved_policy" {
@@ -84,36 +75,6 @@ func TestReceiptPolicyRecordsAllResolvedSources(t *testing.T) {
 
 	policySource := mustObject(t, defs["policy_source"], "$defs.policy_source")
 	assertRequiredFields(t, policySource, "layer", "source", "digest", "trust_status", "authority_basis")
-}
-
-func mustObject(t *testing.T, value any, path string) map[string]any {
-	t.Helper()
-	object, ok := value.(map[string]any)
-	if !ok {
-		t.Fatalf("%s = %#v, want object", path, value)
-	}
-	return object
-}
-
-func assertRequiredFields(t *testing.T, schema map[string]any, fields ...string) {
-	t.Helper()
-	requiredRaw, ok := schema["required"].([]any)
-	if !ok {
-		t.Fatalf("required = %#v, want array", schema["required"])
-	}
-	required := make(map[string]bool, len(requiredRaw))
-	for _, item := range requiredRaw {
-		name, ok := item.(string)
-		if !ok {
-			t.Fatalf("required item = %#v, want string", item)
-		}
-		required[name] = true
-	}
-	for _, field := range fields {
-		if !required[field] {
-			t.Errorf("required fields missing %q", field)
-		}
-	}
 }
 
 func TestReceiptConstrainsVerdictDecisionMappings(t *testing.T) {
@@ -166,11 +127,92 @@ func TestReceiptConstrainsVerdictDecisionMappings(t *testing.T) {
 	want := map[string][]string{
 		"PASSED":        {"APPROVED"},
 		"INDETERMINATE": {"BLOCKED"},
-		"FAILED":        {"ACCEPTED_WITH_RISK", "REJECTED"},
+		"FAILED":        {"ACCEPTED_WITH_RISK", "BLOCKED", "REJECTED"},
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("verdict-decision mappings = %#v, want %#v", got, want)
 	}
+}
+
+func TestReceiptRequiresAtLeastOneRequirementResult(t *testing.T) {
+	root := readSchema(t, "receipt.v0.schema.json")
+	properties := mustObject(t, root["properties"], "properties")
+	requirementResults := mustObject(t, properties["requirement_results"], "properties.requirement_results")
+	if got, ok := requirementResults["minItems"].(float64); !ok || got != 1 {
+		t.Fatalf("requirement_results.minItems = %#v, want 1", requirementResults["minItems"])
+	}
+}
+
+func TestReceiptFindingPreservesCategory(t *testing.T) {
+	root := readSchema(t, "receipt.v0.schema.json")
+	defs := mustObject(t, root["$defs"], "$defs")
+	finding := mustObject(t, defs["finding"], "$defs.finding")
+	assertRequiredFields(t, finding, "code", "category", "severity", "message", "blocking")
+
+	properties := mustObject(t, finding["properties"], "$defs.finding.properties")
+	category := mustObject(t, properties["category"], "$defs.finding.properties.category")
+	assertStringEnum(t, category, []string{
+		"AUTHORITY",
+		"CONTRACT",
+		"EVIDENCE",
+		"INTERNAL",
+		"POLICY",
+		"PROTOCOL",
+		"SUBJECT",
+		"VERIFICATION",
+		"WAIVER",
+	})
+}
+
+func TestReceiptWaiversPreserveAuthorityAndScope(t *testing.T) {
+	root := readSchema(t, "receipt.v0.schema.json")
+	properties := mustObject(t, root["properties"], "properties")
+	waivers := mustObject(t, properties["waivers"], "properties.waivers")
+	items := mustObject(t, waivers["items"], "properties.waivers.items")
+	if got := items["$ref"]; got != "#/$defs/waiver_record" {
+		t.Fatalf("properties.waivers.items.$ref = %#v, want #/$defs/waiver_record", got)
+	}
+
+	defs := mustObject(t, root["$defs"], "$defs")
+	waiver := mustObject(t, defs["waiver_record"], "$defs.waiver_record")
+	assertRequiredFields(t, waiver,
+		"id",
+		"target",
+		"scope",
+		"reason",
+		"accepted_risk",
+		"approver",
+		"issued_at",
+		"expires_at",
+		"status",
+		"digest",
+	)
+
+	waiverProperties := mustObject(t, waiver["properties"], "$defs.waiver_record.properties")
+	assertRef(t, waiverProperties["target"], "#/$defs/waiver_target", "waiver target")
+	assertRef(t, waiverProperties["scope"], "#/$defs/waiver_scope", "waiver scope")
+	assertRef(t, waiverProperties["approver"], "#/$defs/waiver_approver", "waiver approver")
+	assertRef(t, waiverProperties["issued_at"], "#/$defs/rfc3339_timestamp", "waiver issued_at")
+	assertRef(t, waiverProperties["expires_at"], "#/$defs/rfc3339_timestamp", "waiver expires_at")
+
+	target := mustObject(t, defs["waiver_target"], "$defs.waiver_target")
+	assertRequiredFields(t, target, "kind", "id")
+	targetProperties := mustObject(t, target["properties"], "$defs.waiver_target.properties")
+	targetKind := mustObject(t, targetProperties["kind"], "$defs.waiver_target.properties.kind")
+	assertStringEnum(t, targetKind, []string{"FINDING", "REQUIREMENT"})
+
+	scope := mustObject(t, defs["waiver_scope"], "$defs.waiver_scope")
+	assertRequiredFields(t, scope, "repository_uri", "work_unit_id")
+	scopeProperties := mustObject(t, scope["properties"], "$defs.waiver_scope.properties")
+	if _, ok := scopeProperties["head_revision"]; !ok {
+		t.Fatal("waiver scope does not expose optional head_revision")
+	}
+
+	approver := mustObject(t, defs["waiver_approver"], "$defs.waiver_approver")
+	assertRequiredFields(t, approver, "identity", "authority")
+
+	status := mustObject(t, waiverProperties["status"], "$defs.waiver_record.properties.status")
+	assertStringEnum(t, status, []string{"INVALID", "VALID"})
 }
 
 func TestEvidenceTimestampPatternsRejectMalformedValues(t *testing.T) {
@@ -214,6 +256,65 @@ func TestEvidenceTimestampPatternsRejectMalformedValues(t *testing.T) {
 				t.Errorf("%s pattern accepted malformed value %q", field, value)
 			}
 		}
+	}
+}
+
+func mustObject(t *testing.T, value any, path string) map[string]any {
+	t.Helper()
+	object, ok := value.(map[string]any)
+	if !ok {
+		t.Fatalf("%s = %#v, want object", path, value)
+	}
+	return object
+}
+
+func assertRequiredFields(t *testing.T, schema map[string]any, fields ...string) {
+	t.Helper()
+	requiredRaw, ok := schema["required"].([]any)
+	if !ok {
+		t.Fatalf("required = %#v, want array", schema["required"])
+	}
+	required := make(map[string]bool, len(requiredRaw))
+	for _, item := range requiredRaw {
+		name, ok := item.(string)
+		if !ok {
+			t.Fatalf("required item = %#v, want string", item)
+		}
+		required[name] = true
+	}
+	for _, field := range fields {
+		if !required[field] {
+			t.Errorf("required fields missing %q", field)
+		}
+	}
+}
+
+func assertRef(t *testing.T, value any, want, path string) {
+	t.Helper()
+	object := mustObject(t, value, path)
+	if got := object["$ref"]; got != want {
+		t.Fatalf("%s.$ref = %#v, want %q", path, got, want)
+	}
+}
+
+func assertStringEnum(t *testing.T, schema map[string]any, want []string) {
+	t.Helper()
+	raw, ok := schema["enum"].([]any)
+	if !ok {
+		t.Fatalf("enum = %#v, want array", schema["enum"])
+	}
+	got := make([]string, 0, len(raw))
+	for _, value := range raw {
+		text, ok := value.(string)
+		if !ok {
+			t.Fatalf("enum item = %#v, want string", value)
+		}
+		got = append(got, text)
+	}
+	sort.Strings(got)
+	sort.Strings(want)
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("enum = %#v, want %#v", got, want)
 	}
 }
 

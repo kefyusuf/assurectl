@@ -56,6 +56,51 @@ func TestFindingSeverityValid(t *testing.T) {
 	}
 }
 
+func TestFindingCategoryValid(t *testing.T) {
+	t.Parallel()
+
+	for _, value := range []FindingCategory{
+		FindingCategorySubject,
+		FindingCategoryContract,
+		FindingCategoryPolicy,
+		FindingCategoryEvidence,
+		FindingCategoryVerification,
+		FindingCategoryWaiver,
+		FindingCategoryAuthority,
+		FindingCategoryProtocol,
+		FindingCategoryInternal,
+	} {
+		if !value.Valid() {
+			t.Fatalf("FindingCategory(%q).Valid() = false, want true", value)
+		}
+	}
+	for _, value := range []FindingCategory{"", "INPUT", "UNKNOWN"} {
+		if value.Valid() {
+			t.Fatalf("FindingCategory(%q).Valid() = true, want false", value)
+		}
+	}
+}
+
+func TestFindingJSONIncludesCategory(t *testing.T) {
+	t.Parallel()
+
+	finding := Finding{
+		Code:     "ASR-EV-REQUIRED-MISSING-001",
+		Category: FindingCategoryEvidence,
+		Severity: SeverityError,
+		Message:  "required evidence is missing",
+		Blocking: true,
+	}
+
+	encoded, err := json.Marshal(finding)
+	if err != nil {
+		t.Fatalf("json.Marshal() error = %v", err)
+	}
+	if !strings.Contains(string(encoded), `"category":"EVIDENCE"`) {
+		t.Fatalf("JSON = %s, missing typed finding category", encoded)
+	}
+}
+
 func TestWaiverStatusValid(t *testing.T) {
 	t.Parallel()
 
