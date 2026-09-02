@@ -171,6 +171,77 @@
       "format": "date-time"
     }
   },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "verification_verdict": {
+            "const": "PASSED"
+          }
+        },
+        "required": [
+          "verification_verdict"
+        ]
+      },
+      "then": {
+        "properties": {
+          "completion_decision": {
+            "const": "APPROVED"
+          }
+        },
+        "required": [
+          "completion_decision"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "verification_verdict": {
+            "const": "INDETERMINATE"
+          }
+        },
+        "required": [
+          "verification_verdict"
+        ]
+      },
+      "then": {
+        "properties": {
+          "completion_decision": {
+            "const": "BLOCKED"
+          }
+        },
+        "required": [
+          "completion_decision"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "verification_verdict": {
+            "const": "FAILED"
+          }
+        },
+        "required": [
+          "verification_verdict"
+        ]
+      },
+      "then": {
+        "properties": {
+          "completion_decision": {
+            "enum": [
+              "REJECTED",
+              "ACCEPTED_WITH_RISK"
+            ]
+          }
+        },
+        "required": [
+          "completion_decision"
+        ]
+      }
+    }
+  ],
   "$defs": {
     "digest": {
       "type": "object",

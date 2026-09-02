@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"reflect"
+	"regexp"
 	"sort"
 	"testing"
 )
@@ -112,4 +114,118 @@ func assertRequiredFields(t *testing.T, schema map[string]any, fields ...string)
 			t.Errorf("required fields missing %q", field)
 		}
 	}
+}
+
+func TestReceiptConstrainsVerdictDecisionMappings(t *testing.T) {
+	root := readSchema(t, "receipt.v0.schema.json")
+	rulesRaw, ok := root["allOf"].([]any)
+	if !ok {
+		t.Fatalf("receipt allOf = %#v, want array", root["allOf"])
+	}
+
+	got := make(map[string][]string)
+	for index, raw := range rulesRaw {
+		rule := mustObject(t, raw, "allOf rule")
+		condition := mustObject(t, rule["if"], "allOf.if")
+		conditionProperties := mustObject(t, condition["properties"], "allOf.if.properties")
+		verdictSchema := mustObject(t, conditionProperties["verification_verdict"], "verification_verdict condition")
+		verdict, ok := verdictSchema["const"].(string)
+		if !ok || verdict == "" {
+			t.Fatalf("allOf[%d] verdict const = %#v, want non-empty string", index, verdictSchema["const"])
+		}
+
+		consequence := mustObject(t, rule["then"], "allOf.then")
+		consequenceProperties := mustObject(t, consequence["properties"], "allOf.then.properties")
+		decisionSchema := mustObject(t, consequenceProperties["completion_decision"], "completion_decision consequence")
+
+		switch {
+		case decisionSchema["const"] != nil:
+			decision, ok := decisionSchema["const"].(string)
+			if !ok || decision == "" {
+				t.Fatalf("allOf[%d] decision const = %#v, want non-empty string", index, decisionSchema["const"])
+			}
+			got[verdict] = []string{decision}
+		case decisionSchema["enum"] != nil:
+			values, ok := decisionSchema["enum"].([]any)
+			if !ok {
+				t.Fatalf("allOf[%d] decision enum = %#v, want array", index, decisionSchema["enum"])
+			}
+			for _, value := range values {
+				decision, ok := value.(string)
+				if !ok {
+					t.Fatalf("allOf[%d] decision enum item = %#v, want string", index, value)
+				}
+				got[verdict] = append(got[verdict], decision)
+			}
+			sort.Strings(got[verdict])
+		default:
+			t.Fatalf("allOf[%d] completion_decision has neither const nor enum", index)
+		}
+	}
+
+	want := map[string][]string{
+		"PASSED":        {"APPROVED"},
+		"INDETERMINATE": {"BLOCKED"},
+		"FAILED":        {"ACCEPTED_WITH_RISK", "REJECTED"},
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("verdict-decision mappings = %#v, want %#v", got, want)
+	}
+}
+
+func TestEvidenceTimestampPatternsRejectMalformedValues(t *testing.T) {
+	root := readSchema(t, "evidence-envelope.v0.schema.json")
+	properties := mustObject(t, root["properties"], "properties")
+	invocation := mustObject(t, properties["invocation"], "properties.invocation")
+	invocationProperties := mustObject(t, invocation["properties"], "properties.invocation.properties")
+
+	valid := []string{
+		"2026-09-02T09:10:00Z",
+		"2026-09-02T09:10:00.123456789+03:00",
+	}
+	invalid := []string{
+		"not-a-time",
+		"2026-13-02T09:10:00Z",
+		"2026-09-02 09:10:00Z",
+		"2026-09-02T25:10:00Z",
+		"2026-09-02T09:10:00+25:00",
+	}
+
+	for _, field := range []string{"started_at", "finished_at"} {
+		fieldSchema := mustObject(t, invocationProperties[field], "invocation timestamp")
+		if got := fieldSchema["format"]; got != "date-time" {
+			t.Fatalf("%s format = %#v, want date-time", field, got)
+		}
+		pattern, ok := fieldSchema["pattern"].(string)
+		if !ok || pattern == "" {
+			t.Fatalf("%s pattern = %#v, want non-empty string", field, fieldSchema["pattern"])
+		}
+		re, err := regexp.Compile(pattern)
+		if err != nil {
+			t.Fatalf("regexp.Compile(%s) error = %v", field, err)
+		}
+		for _, value := range valid {
+			if !re.MatchString(value) {
+				t.Errorf("%s pattern rejected valid lexical RFC3339 value %q", field, value)
+			}
+		}
+		for _, value := range invalid {
+			if re.MatchString(value) {
+				t.Errorf("%s pattern accepted malformed value %q", field, value)
+			}
+		}
+	}
+}
+
+func readSchema(t *testing.T, path string) map[string]any {
+	t.Helper()
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("os.ReadFile(%q) error = %v", path, err)
+	}
+	var root map[string]any
+	if err := json.Unmarshal(data, &root); err != nil {
+		t.Fatalf("json.Unmarshal(%q) error = %v", path, err)
+	}
+	return root
 }
