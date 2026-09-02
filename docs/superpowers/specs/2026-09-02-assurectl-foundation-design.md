@@ -3,7 +3,7 @@
 **Status:** Proposed for implementation planning  
 **Date:** 2026-09-02  
 **Repository:** `github.com/kefyusuf/assurectl`  
-**License direction:** Apache-2.0
+**License:** Apache-2.0
 
 ## 1. Executive summary
 
@@ -47,13 +47,13 @@ The initial market is software delivery, not generic consequential agent workflo
 The first stable architecture must:
 
 1. Bind every evaluation to an immutable repository subject and exact source revisions.
-2. Keep evidence state, observed outcome, verification verdict, waiver, finding, and completion decision semantically separate.
+2. Keep evidence state, observed outcome, verification verdict, finding, waiver, and completion decision semantically separate.
 3. Resolve effective policy from trusted sources and prevent a change from weakening the policy that evaluates itself.
 4. Treat agent-authored assertions and workspace files as untrusted unless independently attested by an allowed producer.
 5. Evaluate a declarative, versioned contract deterministically and fail closed when authority cannot be established.
 6. Produce machine-readable receipts suitable for later in-toto/DSSE wrapping without inventing custom cryptography.
 7. Remain independent of programming language, framework, coding agent, and CI provider.
-8. Provide a narrow local vertical slice before adding hosted services, orchestration, or a web interface.
+8. Deliver a narrow local vertical slice before adding hosted services, orchestration, or a web interface.
 
 ## 5. Non-goals
 
@@ -65,7 +65,7 @@ AssureCTL v0 will not:
 - provide an agent orchestrator or multiplayer agent session system;
 - use an LLM as the authoritative verdict source;
 - provide a SaaS dashboard, billing, organization management, or long-term evidence storage;
-- perform API/SDK/framework migration generation;
+- generate API, SDK, framework, or dependency migrations;
 - introduce a custom signing algorithm, private PKI, or home-grown canonical-signature format;
 - support arbitrary policy code, shell expressions, embedded scripts, or a general-purpose policy language in v0.
 
@@ -77,7 +77,7 @@ The worker that proposes or produces a change must not be the authority that mar
 
 ### INV-002 — Immutable subject binding
 
-An authoritative decision must identify the repository, base revision, head revision, and normalized change-set digest it evaluated.
+An authoritative decision must identify the repository, base revision, head revision, and versioned change-set digest it evaluated.
 
 ### INV-003 — Trusted intent
 
@@ -131,7 +131,7 @@ A completion receipt states only that the identified subject was evaluated under
 | `EvidenceEnvelope` | A machine-readable observation with subject, producer, invocation, outcome, artifact, and provenance metadata. |
 | `Finding` | A normalized fact discovered during validation or evaluation. |
 | `Waiver` | An authorized, scoped, expiring risk acceptance for an explicitly waivable requirement or finding. |
-| `VerificationVerdict` | The aggregate technical result derived from requirements and evidence, without applying risk acceptance. |
+| `VerificationVerdict` | The aggregate technical result derived from requirements and evidence before risk acceptance. |
 | `CompletionDecision` | The lifecycle decision produced after policy and valid waivers are applied without changing the verification verdict. |
 | `Receipt` | The machine-readable record of inputs, findings, verdict, waivers, decision, and verifier identity. |
 
@@ -152,21 +152,43 @@ subject:
 Rules:
 
 - `repository_uri` is normalized to a provider-neutral repository identity.
-- `base_revision` and `head_revision` are immutable full commit identifiers.
-- `change_set_digest` is computed from a normalized representation of the base-to-head change set, not from a human-readable PR number.
-- The receipt subject includes both revisions even when an adapter also records a PR or release identifier.
+- `base_revision` and `head_revision` are immutable full Git object identifiers.
+- The receipt subject includes both revisions even when an adapter also records a pull request or release identifier.
 - Authoritative evaluation requires a clean, committed source state.
-- A dirty workspace may be evaluated only as `ADVISORY`; it cannot produce `APPROVED` authority.
+- A dirty workspace may be evaluated only with `ADVISORY` authority.
 - New commits invalidate evidence whose subject does not match the new head revision.
 
-The exact normalized change-set algorithm will be specified and conformance-tested before signed receipts become stable. No v0 security claim may depend on an undocumented Git diff representation.
+### 8.1 Repository identity resolution
+
+Resolution order for v0 is:
+
+1. an explicit repository URI supplied by the caller;
+2. a normalized `origin` remote URI;
+3. a local advisory identifier derived from the worktree root when no remote exists.
+
+Common SSH and HTTPS forms for the same hosted repository normalize to one identity. A local-only identifier is never eligible for authoritative mode.
+
+### 8.2 Change-set digest v0
+
+For Git subjects, the exact base and head commits define the evaluated change set. v0 does not hash a presentation-dependent textual diff. It computes:
+
+```text
+sha256(
+  "assurectl.git-change-set/v0\n" +
+  canonical_repository_uri + "\n" +
+  full_base_object_id + "\n" +
+  full_head_object_id + "\n"
+)
+```
+
+The algorithm identifier is part of the preimage and receipt. This binds the decision to the exact repository/base/head tuple while avoiding rename detection, diff formatting, local configuration, and Git version differences. A future algorithm requires a new version identifier and conformance fixtures.
 
 ## 9. Contract authority
 
 A verification contract contains:
 
 ```yaml
-schema_version: assurectl.dev/verification-contract/v0
+schema_version: assurectl/verification-contract/v0
 work_unit:
   id: migration-184
   type: api_migration
@@ -182,14 +204,14 @@ acceptance_criteria:
       - integration-tests
 ```
 
-Contract trust is separate from evidence trust. In local v0, a workspace contract is advisory. In a future authoritative GitHub flow, the contract must be pinned to an approved issue, protected metadata source, signed artifact, or other policy-approved authority. If the contract authority is not trusted, the engine may report findings but must return a blocked authoritative decision.
+Contract trust is separate from evidence trust. In local v0, a workspace contract is advisory. In a future authoritative GitHub flow, the contract must be pinned to an approved issue, protected metadata source, signed artifact, or other policy-approved authority. If contract authority is not trusted, the engine may still report findings, but authoritative completion is blocked.
 
 ## 10. Evidence model
 
 An evidence envelope has six concerns:
 
 ```yaml
-schema_version: assurectl.dev/evidence-envelope/v0
+schema_version: assurectl/evidence-envelope/v0
 id: ev-unit-tests-01
 type: test-result
 subject:
@@ -224,7 +246,7 @@ Evidence validation produces one state:
 - `STALE`: evidence is otherwise usable but belongs to another revision or expired validity window;
 - `UNTRUSTED`: integrity may be intact, but producer or execution provenance is not permitted by policy.
 
-Evidence state is distinct from observed outcome. A trusted test report can be `VALID` evidence whose outcome is `FAILED`.
+Evidence state is distinct from observed outcome. A trusted test report can be `VALID` evidence whose observed outcome is `FAILED`. The initial observed outcome values are `PASSED`, `FAILED`, and `ERROR`.
 
 ### 10.2 Evidence path safety
 
@@ -257,7 +279,7 @@ Local advisory mode may load `.assurectl/policy.yaml` from the workspace, but th
 
 ### 12.1 Findings
 
-A finding contains a stable code, category, severity, affected requirement, relevant evidence identifiers, human-readable explanation, and deterministic disposition. Machine consumers must rely on stable codes rather than message text.
+A finding contains a stable code, category, severity, affected requirement, relevant evidence identifiers, human-readable explanation, and deterministic disposition. Machine consumers rely on stable codes rather than message text.
 
 Initial finding categories include:
 
@@ -281,11 +303,11 @@ The aggregate `VerificationVerdict` is computed before waivers:
 - otherwise `INDETERMINATE` when at least one required verification cannot be established because evidence is missing, stale, invalid, untrusted, or authority is unresolved;
 - otherwise `PASSED`.
 
-A definitive failure takes precedence over indeterminate requirements so the receipt does not conceal known failure. All findings remain present.
+A definitive failure takes precedence over indeterminate requirements in the technical verdict so the receipt does not conceal known failure. All indeterminate findings remain present and still block completion.
 
 ### 12.3 Waivers
 
-A waiver must identify:
+A waiver identifies:
 
 - its stable identifier;
 - the exact requirement or finding it covers;
@@ -298,16 +320,16 @@ A waiver must identify:
 
 A waiver is applicable only when policy marks the target requirement waivable and the waiver is valid for the exact scope. Protocol invariants cannot be waiver targets.
 
-### 12.4 Completion decision
+### 12.4 Completion decision precedence
 
-The `CompletionDecision` is:
+The decision engine applies the following order:
 
-- `APPROVED`: verification passed and no blocking authority or policy finding exists;
-- `REJECTED`: definitive failed requirements remain and cannot all be covered by valid, authorized waivers;
-- `BLOCKED`: verification is indeterminate, authority is unresolved, policy or contract is invalid, or a protocol invariant cannot be established;
-- `ACCEPTED_WITH_RISK`: verification failed only on explicitly waivable requirements, every such failure is covered by a valid authorized waiver, and all non-waivable requirements passed.
+1. Return `BLOCKED` when any required verification is indeterminate, policy or contract is invalid, authority is unresolved, or a protocol invariant cannot be established. This remains true even when another requirement has a known failure.
+2. Return `APPROVED` when every required verification is established and passed and no blocking finding exists.
+3. When every required verification is established and one or more have failed, return `ACCEPTED_WITH_RISK` only when every failed requirement is explicitly waivable and covered by a valid, authorized waiver.
+4. Otherwise return `REJECTED`.
 
-`ACCEPTED_WITH_RISK` does not change `VerificationVerdict: FAILED`.
+`ACCEPTED_WITH_RISK` requires zero indeterminate requirements and does not change `VerificationVerdict: FAILED`.
 
 ## 13. Trust tiers
 
@@ -371,15 +393,15 @@ Subject Resolver ---- Contract Loader
 
 ### 14.1 Components
 
-- **CLI:** argument parsing, discovery, human and JSON output, exit-code mapping; no domain decisions.
-- **Subject resolver:** discovers repository identity and exact Git state; computes or delegates normalized change-set identity.
+- **CLI:** argument parsing, discovery, human and JSON output, and exit-code mapping; no domain decisions.
+- **Subject resolver:** discovers repository identity and exact Git state and computes the versioned change-set digest.
 - **Contract loader:** parses, schema-validates, normalizes, and records contract authority.
 - **Policy resolver:** combines policy layers under monotonic restriction rules and emits the effective policy digest.
 - **Evidence loader:** discovers local evidence envelopes and referenced artifacts without interpreting pass/fail semantics.
 - **Evidence validator:** validates schema, paths, hashes, subject binding, producer trust, invocation metadata, and freshness.
 - **Verification engine:** maps valid evidence and observations to requirements and produces findings plus technical verdict.
 - **Waiver engine:** validates scope, authority, expiry, and policy permission; never mutates evidence or verdict.
-- **Completion decision engine:** maps verdict, findings, and applicable waivers to the lifecycle decision.
+- **Completion decision engine:** applies the explicit precedence rules to verdict, findings, and applicable waivers.
 - **Receipt builder:** emits a versioned record with normalized input digests, findings, verdict, waivers, decision, and verifier metadata.
 
 Each component exposes typed inputs and outputs and must be testable without invoking the CLI.
@@ -401,7 +423,7 @@ Default discovery:
 .assurectl/receipts/
 ```
 
-The command also accepts explicit paths and `--format text|json`. It discovers the current Git repository, resolves a committed subject, validates the inputs, evaluates the decision, prints the result, and optionally writes an unsigned receipt.
+The command also accepts explicit paths and `--format text|json`. It discovers the current Git repository, resolves a committed subject, validates inputs, evaluates the decision, prints the result, and optionally writes an unsigned receipt.
 
 Initial exit codes:
 
@@ -476,15 +498,15 @@ After design approval, the foundation scaffold will use:
 └── go.mod
 ```
 
-The repository will avoid a public `pkg/` API until stable external consumers exist. Internal packages will enforce boundaries while the protocol evolves.
+The repository avoids a public `pkg/` API until stable external consumers exist. Internal packages enforce boundaries while the protocol evolves.
 
 ## 19. Testing strategy
 
 Implementation follows test-driven development. The minimum test portfolio is:
 
-1. table-driven domain tests for every evidence state, verdict, waiver, and decision transition;
+1. table-driven domain tests for every evidence state, observed outcome, verdict, waiver, and decision transition;
 2. policy merge tests proving downstream layers cannot weaken upstream constraints;
-3. temporary-Git-repository integration tests for clean, dirty, base/head, and stale-revision scenarios;
+3. temporary Git repository integration tests for clean, dirty, base/head, and stale-revision scenarios;
 4. adversarial fixtures for forged producer identity, self-rooted authority, path traversal, symlink escape, digest mismatch, duplicate identifiers, expired waiver, and unsupported schema;
 5. golden JSON receipt tests with stable field ordering and normalized identifiers;
 6. repeatability tests proving identical normalized inputs produce identical findings, verdict, and decision;
@@ -492,7 +514,7 @@ Implementation follows test-driven development. The minimum test portfolio is:
 8. CLI integration tests for output channels and exit codes;
 9. tests that require no network access for the core evaluator.
 
-A feature is not complete because an agent reports success. Completion requires the planned test evidence and a review of the resulting diff.
+A feature is not complete because an agent reports success. Completion requires the planned test evidence and review of the resulting diff.
 
 ## 20. Delivery milestones
 
@@ -502,7 +524,7 @@ Create project documents, ADRs, Go module, package skeleton, schema placeholders
 
 ### M1 — Local advisory vertical slice
 
-Implement exact Git subject resolution, typed policy and contract parsing, local evidence validation, deterministic verdict/decision, and unsigned receipt output.
+Implement exact Git subject resolution, typed policy and contract parsing, local evidence validation, deterministic verdict and decision, and unsigned receipt output.
 
 ### M2 — Trusted CI evidence
 
@@ -518,7 +540,7 @@ Define the stable in-toto predicate, DSSE/Sigstore signing, trust-root policy, r
 
 ### M5 — Change-intelligence integration
 
-Integrate automated API/SDK/framework/dependency migration producers while preserving the independent assurance boundary.
+Integrate automated API, SDK, framework, and dependency migration producers while preserving the independent assurance boundary.
 
 ## 21. Open-source and commercial boundary
 
