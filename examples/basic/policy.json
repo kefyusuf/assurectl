@@ -1,0 +1,13 @@
+{
+  "schema_version": "assurectl/policy/v0",
+  "authority": "ADVISORY",
+  "requirements": [
+    {
+      "id": "unit-tests",
+      "evidence_type": "test-result",
+      "waivable": false,
+      "allowed_producer_types": ["local-user"],
+      "max_age_seconds": 3600
+    }
+  ]
+}

@@ -1,0 +1,171 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/kefyusuf/assurectl/schemas/receipt.v0.schema.json",
+  "title": "AssureCTL Receipt v0",
+  "description": "Unstable unsigned v0 receipt schema. It carries no authoritative cryptographic claim.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "authority",
+    "subject",
+    "work_unit",
+    "contract",
+    "policy",
+    "evidence",
+    "findings",
+    "waivers",
+    "verification_verdict",
+    "completion_decision",
+    "verifier",
+    "evaluated_at"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "assurectl/receipt/v0"
+    },
+    "authority": {
+      "type": "string",
+      "enum": ["ADVISORY", "CI_ASSERTED", "AUTHORITATIVE"]
+    },
+    "subject": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["repository_uri", "base_revision", "head_revision", "change_set_algorithm", "change_set_digest"],
+      "properties": {
+        "repository_uri": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "base_revision": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}([0-9a-f]{24})?$"
+        },
+        "head_revision": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}([0-9a-f]{24})?$"
+        },
+        "change_set_algorithm": {
+          "const": "assurectl.git-change-set/v0"
+        },
+        "change_set_digest": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "work_unit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "type", "objective"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "type": {
+          "type": "string",
+          "enum": [
+            "pull_request",
+            "commit",
+            "release_candidate",
+            "api_migration",
+            "sdk_migration",
+            "framework_upgrade",
+            "dependency_upgrade",
+            "security_remediation"
+          ]
+        },
+        "objective": {"type": "string", "minLength": 1}
+      }
+    },
+    "contract": {"$ref": "#/$defs/digested_input"},
+    "policy": {"$ref": "#/$defs/digested_input"},
+    "evidence": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/evidence_reference"}
+    },
+    "findings": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/finding"}
+    },
+    "waivers": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/waiver_reference"}
+    },
+    "verification_verdict": {
+      "type": "string",
+      "enum": ["PASSED", "FAILED", "INDETERMINATE"]
+    },
+    "completion_decision": {
+      "type": "string",
+      "enum": ["APPROVED", "REJECTED", "BLOCKED", "ACCEPTED_WITH_RISK"]
+    },
+    "verifier": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "version", "protocol_version"],
+      "properties": {
+        "name": {"const": "assurectl"},
+        "version": {"type": "string", "minLength": 1},
+        "protocol_version": {"const": "v0"}
+      }
+    },
+    "evaluated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "$defs": {
+    "digest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["algorithm", "value"],
+      "properties": {
+        "algorithm": {"const": "sha256"},
+        "value": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+      }
+    },
+    "digested_input": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source", "digest"],
+      "properties": {
+        "source": {"type": "string", "minLength": 1},
+        "digest": {"$ref": "#/$defs/digest"}
+      }
+    },
+    "evidence_reference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "state", "outcome", "digest"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "state": {"type": "string", "enum": ["VALID", "INVALID", "MISSING", "STALE", "UNTRUSTED"]},
+        "outcome": {"type": "string", "enum": ["PASSED", "FAILED", "ERROR"]},
+        "digest": {"$ref": "#/$defs/digest"}
+      }
+    },
+    "finding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "severity", "message", "blocking"],
+      "properties": {
+        "code": {"type": "string", "minLength": 1},
+        "severity": {"type": "string", "enum": ["INFO", "WARNING", "ERROR"]},
+        "requirement_id": {"type": "string", "minLength": 1},
+        "evidence_ids": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+        "message": {"type": "string", "minLength": 1},
+        "blocking": {"type": "boolean"}
+      }
+    },
+    "waiver_reference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "requirement_id", "status"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "requirement_id": {"type": "string", "minLength": 1},
+        "status": {"type": "string", "enum": ["NOT_APPLICABLE", "VALID", "INVALID"]}
+      }
+    }
+  }
+}

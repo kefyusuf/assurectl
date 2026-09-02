@@ -1,0 +1,19 @@
+{
+  "schema_version": "assurectl/verification-contract/v0",
+  "work_unit": {
+    "id": "example-commit-001",
+    "type": "commit",
+    "objective": "Demonstrate the unstable AssureCTL v0 contract structure."
+  },
+  "authority": {
+    "type": "local-user",
+    "identity": "advisory"
+  },
+  "acceptance_criteria": [
+    {
+      "id": "AC-001",
+      "statement": "The required unit-test suite reports no failures or errors.",
+      "requirements": ["unit-tests"]
+    }
+  ]
+}
