@@ -1,0 +1,6 @@
+/bin/
+/dist/
+/coverage.out
+*.test
+.assurectl/receipts/
+.DS_Store
