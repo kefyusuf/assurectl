@@ -10,3 +10,5 @@ These notes record implementation-time refinements to the M0 plan.
 - Local verification used the available Go 1.23.2 toolchain with a temporary local `go` directive override. GitHub Actions is the authoritative compatibility check for the committed Go 1.26.0 floor and the 1.26.x/1.27.x matrix.
 - CI disables persisted checkout credentials and sets `GOTOOLCHAIN=local` to prevent unintended toolchain acquisition during verification.
 - Decision validation fails closed when a normalized result claims a valid waiver for a non-waivable requirement.
+- Receipt policy provenance records every contributing layer as a separate source with digest, resolved trust status, authority basis, and source revision when applicable; the effective policy has its own digest.
+- Contributor-facing build commands write the CLI to `/tmp/assurectl`, and `/assurectl` is ignored defensively so verification does not dirty the repository.

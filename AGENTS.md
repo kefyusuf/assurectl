@@ -12,7 +12,7 @@ Before editing, read:
 4. `docs/threat-model/v0.md`;
 5. `CONTRIBUTING.md`.
 
-Accepted ADRs and explicit design amendments take precedence over conflicting examples in older plans or design drafts.
+Accepted ADRs and the consolidated foundation design take precedence over conflicting examples in older plans or historical amendments. Verification commands in `CONTRIBUTING.md` supersede older plan snippets.
 
 ## Non-negotiable rules
 

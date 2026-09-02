@@ -60,7 +60,7 @@ Prerequisite: Go 1.26 or newer.
 ```bash
 go test ./...
 go vet ./...
-go build ./cmd/assurectl
+go build -trimpath -o /tmp/assurectl ./cmd/assurectl
 go run ./cmd/assurectl version
 ```
 
@@ -79,7 +79,7 @@ docs/architecture/      concise component boundaries
 docs/threat-model/      supported and deferred protections
 ```
 
-The full design is in [`docs/superpowers/specs/2026-09-02-assurectl-foundation-design.md`](docs/superpowers/specs/2026-09-02-assurectl-foundation-design.md). Accepted ADRs and [`foundation amendment 1`](docs/superpowers/specs/2026-09-02-assurectl-foundation-design-amendment-1.md) take precedence over conflicting draft details.
+The consolidated design is in [`docs/superpowers/specs/2026-09-02-assurectl-foundation-design.md`](docs/superpowers/specs/2026-09-02-assurectl-foundation-design.md). Accepted ADRs take precedence over conflicting details; historical amendments are retained for traceability.
 
 ## Roadmap
 

@@ -18,7 +18,7 @@ mapfile -d '' files < <(find . -name '*.go' -type f -not -path './vendor/*' -pri
 test -z "$(gofmt -l "${files[@]}")"
 go vet ./...
 go test -race ./...
-go build ./cmd/assurectl
+go build -trimpath -o /tmp/assurectl ./cmd/assurectl
 ```
 
 ## Architectural changes

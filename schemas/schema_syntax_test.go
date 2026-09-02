@@ -45,3 +45,71 @@ func TestSchemaRootsAreStrictValidJSON(t *testing.T) {
 		})
 	}
 }
+
+func TestReceiptPolicyRecordsAllResolvedSources(t *testing.T) {
+	data, err := os.ReadFile("receipt.v0.schema.json")
+	if err != nil {
+		t.Fatalf("os.ReadFile(receipt schema) error = %v", err)
+	}
+
+	var root map[string]any
+	if err := json.Unmarshal(data, &root); err != nil {
+		t.Fatalf("json.Unmarshal(receipt schema) error = %v", err)
+	}
+
+	properties := mustObject(t, root["properties"], "properties")
+	policy := mustObject(t, properties["policy"], "properties.policy")
+	if got := policy["$ref"]; got != "#/$defs/resolved_policy" {
+		t.Fatalf("properties.policy.$ref = %#v, want #/$defs/resolved_policy", got)
+	}
+
+	defs := mustObject(t, root["$defs"], "$defs")
+	resolvedPolicy := mustObject(t, defs["resolved_policy"], "$defs.resolved_policy")
+	assertRequiredFields(t, resolvedPolicy, "sources", "effective_digest", "trust_status")
+
+	resolvedProperties := mustObject(t, resolvedPolicy["properties"], "$defs.resolved_policy.properties")
+	sources := mustObject(t, resolvedProperties["sources"], "$defs.resolved_policy.properties.sources")
+	if got := sources["type"]; got != "array" {
+		t.Fatalf("resolved policy sources type = %#v, want array", got)
+	}
+	if got, ok := sources["minItems"].(float64); !ok || got < 1 {
+		t.Fatalf("resolved policy sources minItems = %#v, want at least 1", sources["minItems"])
+	}
+	items := mustObject(t, sources["items"], "$defs.resolved_policy.properties.sources.items")
+	if got := items["$ref"]; got != "#/$defs/policy_source" {
+		t.Fatalf("resolved policy source item $ref = %#v, want #/$defs/policy_source", got)
+	}
+
+	policySource := mustObject(t, defs["policy_source"], "$defs.policy_source")
+	assertRequiredFields(t, policySource, "layer", "source", "digest", "trust_status", "authority_basis")
+}
+
+func mustObject(t *testing.T, value any, path string) map[string]any {
+	t.Helper()
+	object, ok := value.(map[string]any)
+	if !ok {
+		t.Fatalf("%s = %#v, want object", path, value)
+	}
+	return object
+}
+
+func assertRequiredFields(t *testing.T, schema map[string]any, fields ...string) {
+	t.Helper()
+	requiredRaw, ok := schema["required"].([]any)
+	if !ok {
+		t.Fatalf("required = %#v, want array", schema["required"])
+	}
+	required := make(map[string]bool, len(requiredRaw))
+	for _, item := range requiredRaw {
+		name, ok := item.(string)
+		if !ok {
+			t.Fatalf("required item = %#v, want string", item)
+		}
+		required[name] = true
+	}
+	for _, field := range fields {
+		if !required[field] {
+			t.Errorf("required fields missing %q", field)
+		}
+	}
+}

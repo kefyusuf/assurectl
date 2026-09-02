@@ -13,7 +13,7 @@
 - [ ] `gofmt` reports no files.
 - [ ] `go vet ./...` passes.
 - [ ] `go test -race ./...` passes.
-- [ ] `go build ./cmd/assurectl` passes.
+- [ ] `go build -trimpath -o /tmp/assurectl ./cmd/assurectl` passes.
 
 ## Assurance review
 

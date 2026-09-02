@@ -4,3 +4,4 @@
 *.test
 .assurectl/receipts/
 .DS_Store
+/assurectl
