@@ -36,7 +36,6 @@ func TestEvaluateDecisionTable(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			got, err := Evaluate(tt.requirements)
@@ -69,7 +68,6 @@ func TestEvaluateRejectsMalformedInputsFailClosed(t *testing.T) {
 
 	want := evaluation(domain.VerdictIndeterminate, domain.DecisionBlocked)
 	for _, tt := range tests {
-		t := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			got, err := Evaluate([]domain.RequirementResult{tt.requirement})
