@@ -49,6 +49,128 @@ func TestEvaluateDecisionTable(t *testing.T) {
 	}
 }
 
+func TestEvaluateBlockingFindingMakesPassingEvaluationIndeterminateAndBlocked(t *testing.T) {
+	t.Parallel()
+
+	got, err := Evaluate(
+		[]domain.RequirementResult{requirement("unit-tests", domain.EvidenceValid, domain.OutcomePassed, false, domain.WaiverNotApplicable)},
+		finding("ASR-POLICY-INVALID-001", true),
+	)
+	if err != nil {
+		t.Fatalf("Evaluate() error = %v", err)
+	}
+	want := evaluation(domain.VerdictIndeterminate, domain.DecisionBlocked)
+	if got != want {
+		t.Fatalf("Evaluate() = %#v, want %#v", got, want)
+	}
+}
+
+func TestEvaluateBlockingFindingPreservesKnownFailureAndBlocks(t *testing.T) {
+	t.Parallel()
+
+	got, err := Evaluate(
+		[]domain.RequirementResult{requirement("unit-tests", domain.EvidenceValid, domain.OutcomeFailed, false, domain.WaiverNotApplicable)},
+		finding("ASR-AUTHORITY-UNRESOLVED-001", true),
+	)
+	if err != nil {
+		t.Fatalf("Evaluate() error = %v", err)
+	}
+	want := evaluation(domain.VerdictFailed, domain.DecisionBlocked)
+	if got != want {
+		t.Fatalf("Evaluate() = %#v, want %#v", got, want)
+	}
+}
+
+func TestEvaluateNonBlockingFindingDoesNotChangeDecision(t *testing.T) {
+	t.Parallel()
+
+	got, err := Evaluate(
+		[]domain.RequirementResult{requirement("unit-tests", domain.EvidenceValid, domain.OutcomePassed, false, domain.WaiverNotApplicable)},
+		finding("ASR-INFO-001", false),
+	)
+	if err != nil {
+		t.Fatalf("Evaluate() error = %v", err)
+	}
+	want := evaluation(domain.VerdictPassed, domain.DecisionApproved)
+	if got != want {
+		t.Fatalf("Evaluate() = %#v, want %#v", got, want)
+	}
+}
+
+func TestEvaluateRejectsMalformedFindingFailClosed(t *testing.T) {
+	t.Parallel()
+
+	valid := finding("ASR-PROTOCOL-001", true)
+	tests := []struct {
+		name      string
+		finding   domain.Finding
+		wantField string
+	}{
+		{
+			name: "missing code",
+			finding: domain.Finding{
+				Category: domain.FindingCategoryProtocol,
+				Severity: domain.SeverityError,
+				Message:  "protocol input is invalid",
+				Blocking: true,
+			},
+			wantField: "code",
+		},
+		{
+			name: "invalid category",
+			finding: domain.Finding{
+				Code:     valid.Code,
+				Category: domain.FindingCategory("UNKNOWN"),
+				Severity: valid.Severity,
+				Message:  valid.Message,
+				Blocking: true,
+			},
+			wantField: "category",
+		},
+		{
+			name: "invalid severity",
+			finding: domain.Finding{
+				Code:     valid.Code,
+				Category: valid.Category,
+				Severity: domain.FindingSeverity("UNKNOWN"),
+				Message:  valid.Message,
+				Blocking: true,
+			},
+			wantField: "severity",
+		},
+		{
+			name: "missing message",
+			finding: domain.Finding{
+				Code:     valid.Code,
+				Category: valid.Category,
+				Severity: valid.Severity,
+				Blocking: true,
+			},
+			wantField: "message",
+		},
+	}
+
+	want := evaluation(domain.VerdictIndeterminate, domain.DecisionBlocked)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			got, err := Evaluate(
+				[]domain.RequirementResult{requirement("unit-tests", domain.EvidenceValid, domain.OutcomePassed, false, domain.WaiverNotApplicable)},
+				tt.finding,
+			)
+			if err == nil {
+				t.Fatal("Evaluate() error = nil, want non-nil")
+			}
+			if !strings.Contains(err.Error(), tt.wantField) {
+				t.Fatalf("error = %q, want field %q", err, tt.wantField)
+			}
+			if got != want {
+				t.Fatalf("fail-closed result = %#v, want %#v", got, want)
+			}
+		})
+	}
+}
+
 func TestEvaluateRejectsMalformedInputsFailClosed(t *testing.T) {
 	t.Parallel()
 
@@ -130,6 +252,16 @@ func requirement(id string, state domain.EvidenceState, outcome domain.ObservedO
 		Outcome:       outcome,
 		Waivable:      waivable,
 		WaiverStatus:  waiver,
+	}
+}
+
+func finding(code string, blocking bool) domain.Finding {
+	return domain.Finding{
+		Code:     code,
+		Category: domain.FindingCategoryProtocol,
+		Severity: domain.SeverityError,
+		Message:  "protocol condition requires review",
+		Blocking: blocking,
 	}
 }
 
