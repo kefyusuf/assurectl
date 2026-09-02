@@ -12,11 +12,7 @@ var blockedIndeterminate = domain.EvaluationResult{
 	Decision: domain.DecisionBlocked,
 }
 
-func Evaluate(requirements []domain.RequirementResult) (domain.EvaluationResult, error) {
-	if len(requirements) == 0 {
-		return blockedIndeterminate, nil
-	}
-
+func Evaluate(requirements []domain.RequirementResult, findings ...domain.Finding) (domain.EvaluationResult, error) {
 	knownFailure := false
 	indeterminate := false
 
@@ -38,14 +34,28 @@ func Evaluate(requirements []domain.RequirementResult) (domain.EvaluationResult,
 		}
 	}
 
+	hasBlockingFinding := false
+	for i, finding := range findings {
+		if err := validateFinding(i, finding); err != nil {
+			return blockedIndeterminate, err
+		}
+		if finding.Blocking {
+			hasBlockingFinding = true
+		}
+	}
+
+	if len(requirements) == 0 {
+		return blockedIndeterminate, nil
+	}
+
 	verdict := domain.VerdictPassed
 	if knownFailure {
 		verdict = domain.VerdictFailed
-	} else if indeterminate {
+	} else if indeterminate || hasBlockingFinding {
 		verdict = domain.VerdictIndeterminate
 	}
 
-	if indeterminate {
+	if indeterminate || hasBlockingFinding {
 		return domain.EvaluationResult{
 			Verdict:  verdict,
 			Decision: domain.DecisionBlocked,
@@ -91,6 +101,22 @@ func validateRequirement(index int, requirement domain.RequirementResult) error 
 	if requirement.WaiverStatus == domain.WaiverValid &&
 		(!requirement.Waivable || requirement.EvidenceState != domain.EvidenceValid || requirement.Outcome != domain.OutcomeFailed) {
 		return fmt.Errorf("requirement %q waiver_status: VALID is permitted only for a waivable VALID/FAILED requirement", requirement.RequirementID)
+	}
+	return nil
+}
+
+func validateFinding(index int, finding domain.Finding) error {
+	if finding.Code == "" {
+		return fmt.Errorf("finding[%d].code: must not be empty", index)
+	}
+	if !finding.Category.Valid() {
+		return fmt.Errorf("finding[%d].category: unsupported value %q", index, finding.Category)
+	}
+	if !finding.Severity.Valid() {
+		return fmt.Errorf("finding[%d].severity: unsupported value %q", index, finding.Severity)
+	}
+	if finding.Message == "" {
+		return fmt.Errorf("finding[%d].message: must not be empty", index)
 	}
 	return nil
 }
