@@ -15,6 +15,9 @@ These notes record implementation-time refinements to the M0 plan.
 - Zero-argument CLI commands reject trailing arguments with usage exit code `64`.
 - Receipt schema conditionals mirror the deterministic decision kernel, including `FAILED/BLOCKED` for mixed known-failure and indeterminate verification states.
 - An `APPROVED` receipt requires every requirement result to be established as `VALID/PASSED`.
+- `ACCEPTED_WITH_RISK` requires only established `VALID` results, at least one failed result, a valid waiver status for every failed result, and at least one supplied waiver record resolved as valid.
+- Exact failed-requirement-to-waiver-record referential matching remains a semantic receipt-builder invariant because JSON Schema cannot compare identifiers across independent arrays.
+- Any receipt decision other than `BLOCKED` requires all findings to be non-blocking.
 - A non-`BLOCKED` `AUTHORITATIVE` receipt requires trusted contract and effective-policy inputs.
 - A receipt requires at least one requirement result, preventing an empty evaluation from being represented as approval.
 - Findings preserve a closed machine-readable category in addition to code and severity.
