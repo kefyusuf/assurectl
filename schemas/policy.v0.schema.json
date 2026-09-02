@@ -5,14 +5,13 @@
   "description": "Unstable v0 project-policy schema for advisory development use.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "authority", "requirements"],
+  "required": [
+    "schema_version",
+    "requirements"
+  ],
   "properties": {
     "schema_version": {
       "const": "assurectl/policy/v0"
-    },
-    "authority": {
-      "type": "string",
-      "enum": ["ADVISORY", "CI_ASSERTED", "AUTHORITATIVE"]
     },
     "requirements": {
       "type": "array",
@@ -20,7 +19,12 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["id", "evidence_type", "waivable", "allowed_producer_types"],
+        "required": [
+          "id",
+          "evidence_type",
+          "waivable",
+          "allowed_producer_types"
+        ],
         "properties": {
           "id": {
             "type": "string",

@@ -13,6 +13,7 @@
     "contract",
     "policy",
     "evidence",
+    "requirement_results",
     "findings",
     "waivers",
     "verification_verdict",
@@ -26,12 +27,22 @@
     },
     "authority": {
       "type": "string",
-      "enum": ["ADVISORY", "CI_ASSERTED", "AUTHORITATIVE"]
+      "enum": [
+        "ADVISORY",
+        "CI_ASSERTED",
+        "AUTHORITATIVE"
+      ]
     },
     "subject": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["repository_uri", "base_revision", "head_revision", "change_set_algorithm", "change_set_digest"],
+      "required": [
+        "repository_uri",
+        "base_revision",
+        "head_revision",
+        "change_set_algorithm",
+        "change_set_digest"
+      ],
       "properties": {
         "repository_uri": {
           "type": "string",
@@ -58,9 +69,16 @@
     "work_unit": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "type", "objective"],
+      "required": [
+        "id",
+        "type",
+        "objective"
+      ],
       "properties": {
-        "id": {"type": "string", "minLength": 1},
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
         "type": {
           "type": "string",
           "enum": [
@@ -74,39 +92,78 @@
             "security_remediation"
           ]
         },
-        "objective": {"type": "string", "minLength": 1}
+        "objective": {
+          "type": "string",
+          "minLength": 1
+        }
       }
     },
-    "contract": {"$ref": "#/$defs/digested_input"},
-    "policy": {"$ref": "#/$defs/digested_input"},
+    "contract": {
+      "$ref": "#/$defs/digested_input"
+    },
+    "policy": {
+      "$ref": "#/$defs/digested_input"
+    },
     "evidence": {
       "type": "array",
-      "items": {"$ref": "#/$defs/evidence_reference"}
+      "items": {
+        "$ref": "#/$defs/evidence_reference"
+      }
+    },
+    "requirement_results": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/requirement_result"
+      }
     },
     "findings": {
       "type": "array",
-      "items": {"$ref": "#/$defs/finding"}
+      "items": {
+        "$ref": "#/$defs/finding"
+      }
     },
     "waivers": {
       "type": "array",
-      "items": {"$ref": "#/$defs/waiver_reference"}
+      "items": {
+        "$ref": "#/$defs/waiver_reference"
+      }
     },
     "verification_verdict": {
       "type": "string",
-      "enum": ["PASSED", "FAILED", "INDETERMINATE"]
+      "enum": [
+        "PASSED",
+        "FAILED",
+        "INDETERMINATE"
+      ]
     },
     "completion_decision": {
       "type": "string",
-      "enum": ["APPROVED", "REJECTED", "BLOCKED", "ACCEPTED_WITH_RISK"]
+      "enum": [
+        "APPROVED",
+        "REJECTED",
+        "BLOCKED",
+        "ACCEPTED_WITH_RISK"
+      ]
     },
     "verifier": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["name", "version", "protocol_version"],
+      "required": [
+        "name",
+        "version",
+        "protocol_version"
+      ],
       "properties": {
-        "name": {"const": "assurectl"},
-        "version": {"type": "string", "minLength": 1},
-        "protocol_version": {"const": "v0"}
+        "name": {
+          "const": "assurectl"
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "protocol_version": {
+          "const": "v0"
+        }
       }
     },
     "evaluated_at": {
@@ -118,54 +175,188 @@
     "digest": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["algorithm", "value"],
+      "required": [
+        "algorithm",
+        "value"
+      ],
       "properties": {
-        "algorithm": {"const": "sha256"},
-        "value": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+        "algorithm": {
+          "const": "sha256"
+        },
+        "value": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
       }
     },
     "digested_input": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["source", "digest"],
+      "required": [
+        "source",
+        "digest",
+        "trusted"
+      ],
       "properties": {
-        "source": {"type": "string", "minLength": 1},
-        "digest": {"$ref": "#/$defs/digest"}
+        "source": {
+          "type": "string",
+          "minLength": 1
+        },
+        "digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "trusted": {
+          "type": "boolean"
+        }
       }
     },
     "evidence_reference": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "state", "outcome", "digest"],
+      "required": [
+        "id",
+        "digest"
+      ],
       "properties": {
-        "id": {"type": "string", "minLength": 1},
-        "state": {"type": "string", "enum": ["VALID", "INVALID", "MISSING", "STALE", "UNTRUSTED"]},
-        "outcome": {"type": "string", "enum": ["PASSED", "FAILED", "ERROR"]},
-        "digest": {"$ref": "#/$defs/digest"}
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "digest": {
+          "$ref": "#/$defs/digest"
+        }
       }
     },
     "finding": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["code", "severity", "message", "blocking"],
+      "required": [
+        "code",
+        "severity",
+        "message",
+        "blocking"
+      ],
       "properties": {
-        "code": {"type": "string", "minLength": 1},
-        "severity": {"type": "string", "enum": ["INFO", "WARNING", "ERROR"]},
-        "requirement_id": {"type": "string", "minLength": 1},
-        "evidence_ids": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
-        "message": {"type": "string", "minLength": 1},
-        "blocking": {"type": "boolean"}
+        "code": {
+          "type": "string",
+          "minLength": 1
+        },
+        "severity": {
+          "type": "string",
+          "enum": [
+            "INFO",
+            "WARNING",
+            "ERROR"
+          ]
+        },
+        "requirement_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1
+        },
+        "blocking": {
+          "type": "boolean"
+        }
       }
     },
     "waiver_reference": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "requirement_id", "status"],
+      "required": [
+        "id",
+        "requirement_id",
+        "status"
+      ],
       "properties": {
-        "id": {"type": "string", "minLength": 1},
-        "requirement_id": {"type": "string", "minLength": 1},
-        "status": {"type": "string", "enum": ["NOT_APPLICABLE", "VALID", "INVALID"]}
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "requirement_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "NOT_APPLICABLE",
+            "VALID",
+            "INVALID"
+          ]
+        }
       }
+    },
+    "requirement_result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "requirement_id",
+        "evidence_state",
+        "waivable",
+        "waiver_status"
+      ],
+      "properties": {
+        "requirement_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_state": {
+          "type": "string",
+          "enum": [
+            "VALID",
+            "INVALID",
+            "MISSING",
+            "STALE",
+            "UNTRUSTED"
+          ]
+        },
+        "outcome": {
+          "type": "string",
+          "enum": [
+            "PASSED",
+            "FAILED",
+            "ERROR"
+          ]
+        },
+        "waivable": {
+          "type": "boolean"
+        },
+        "waiver_status": {
+          "type": "string",
+          "enum": [
+            "NOT_APPLICABLE",
+            "VALID",
+            "INVALID"
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "evidence_state": {
+                "const": "VALID"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "outcome"
+            ]
+          }
+        }
+      ]
     }
   }
 }

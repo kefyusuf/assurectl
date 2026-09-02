@@ -5,7 +5,11 @@
   "description": "Unstable v0 contract schema binding a software work unit to acceptance criteria and verification requirements.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "work_unit", "authority", "acceptance_criteria"],
+  "required": [
+    "schema_version",
+    "work_unit",
+    "acceptance_criteria"
+  ],
   "properties": {
     "schema_version": {
       "const": "assurectl/verification-contract/v0"
@@ -13,7 +17,11 @@
     "work_unit": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "type", "objective"],
+      "required": [
+        "id",
+        "type",
+        "objective"
+      ],
       "properties": {
         "id": {
           "type": "string",
@@ -40,30 +48,17 @@
         }
       }
     },
-    "authority": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["type", "identity"],
-      "properties": {
-        "type": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 128
-        },
-        "identity": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 512
-        }
-      }
-    },
     "acceptance_criteria": {
       "type": "array",
       "minItems": 1,
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["id", "statement", "requirements"],
+        "required": [
+          "id",
+          "statement",
+          "requirements"
+        ],
         "properties": {
           "id": {
             "type": "string",
