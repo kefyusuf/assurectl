@@ -14,11 +14,14 @@ These notes record implementation-time refinements to the M0 plan.
 - Contributor-facing build commands write the CLI to `/tmp/assurectl`, and `/assurectl` is ignored defensively so verification does not dirty the repository.
 - Zero-argument CLI commands reject trailing arguments with usage exit code `64`.
 - Receipt schema conditionals mirror the deterministic decision kernel, including `FAILED/BLOCKED` for mixed known-failure and indeterminate verification states.
+- Technical verdicts are derived from requirement results: all `VALID/PASSED` for `PASSED`; at least one `VALID/FAILED` for `FAILED`; otherwise at least one unavailable or errored result and no established failure for `INDETERMINATE`.
 - An `APPROVED` receipt requires every requirement result to be established as `VALID/PASSED`.
 - `ACCEPTED_WITH_RISK` requires only established `VALID` results, at least one failed result, a valid waiver status for every failed result, and at least one supplied waiver record resolved as valid.
 - Exact failed-requirement-to-waiver-record referential matching remains a semantic receipt-builder invariant because JSON Schema cannot compare identifiers across independent arrays.
 - Any receipt decision other than `BLOCKED` requires all findings to be non-blocking.
 - A non-`BLOCKED` `AUTHORITATIVE` receipt requires trusted contract and effective-policy inputs.
+- Every source contributing to a non-blocked authoritative policy must itself be trusted and use an authority basis compatible with its layer: built-in protocol baseline, protected organization control plane, trusted-base project policy, trusted-base or protected assurance profile, and approved contract source.
+- `ADVISORY_WORKSPACE`, `CANDIDATE_HEAD`, unresolved, and untrusted policy sources cannot contribute to a non-blocked authoritative receipt.
 - A receipt requires at least one requirement result, preventing an empty evaluation from being represented as approval.
 - Findings preserve a closed machine-readable category in addition to code and severity.
 - Receipt waiver records preserve exact target, scope, accepted risk, approver identity and resolved authority, issue/expiry times, validity status, and a normalized-input digest.
