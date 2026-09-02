@@ -88,8 +88,9 @@ func validateRequirement(index int, requirement domain.RequirementResult) error 
 	if !requirement.WaiverStatus.Valid() {
 		return fmt.Errorf("requirement %q waiver_status: unsupported value %q", requirement.RequirementID, requirement.WaiverStatus)
 	}
-	if !requirement.Waivable && requirement.WaiverStatus == domain.WaiverValid {
-		return fmt.Errorf("requirement %q waiver_status: VALID is not permitted for a non-waivable requirement", requirement.RequirementID)
+	if requirement.WaiverStatus == domain.WaiverValid &&
+		(!requirement.Waivable || requirement.EvidenceState != domain.EvidenceValid || requirement.Outcome != domain.OutcomeFailed) {
+		return fmt.Errorf("requirement %q waiver_status: VALID is permitted only for a waivable VALID/FAILED requirement", requirement.RequirementID)
 	}
 	return nil
 }
