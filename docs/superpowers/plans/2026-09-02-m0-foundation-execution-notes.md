@@ -20,6 +20,9 @@ These notes record implementation-time refinements to the M0 plan.
 - Receipt schema conditionals mirror the deterministic decision kernel, including `FAILED/BLOCKED` for mixed known-failure and indeterminate or blocking-finding states.
 - Technical verdicts are derived from requirement results and blocking findings: all `VALID/PASSED` with no blocker for `PASSED`; at least one `VALID/FAILED` for `FAILED`; otherwise at least one unavailable, errored, or blocking-finding condition for `INDETERMINATE`.
 - Receipt requirement identifiers use the same canonical identifier pattern as verification contracts and reject whitespace-only values.
+- `VALID` requirement results now carry one or more canonical, unique `evidence_ids`; the decision kernel rejects a `VALID` result without evidence references and rejects malformed or duplicate evidence identifiers.
+- Receipt evidence-reference IDs use the evidence-envelope canonical identifier grammar. If any requirement result is `VALID`, the receipt schema requires a non-empty top-level `evidence` set.
+- Exact `requirement_result.evidence_ids[]` to top-level `evidence[].id` membership and digest matching remains a fail-closed M1 receipt-builder invariant because JSON Schema cannot compare identifiers across independent arrays.
 - An `APPROVED` receipt requires every requirement result to be established as `VALID/PASSED`.
 - `REJECTED` requires only established `VALID` results and at least one failed requirement that is non-waivable or lacks a valid waiver; indeterminate results and blocking findings cannot be represented as rejection.
 - `ACCEPTED_WITH_RISK` requires only established `VALID` results, at least one failed result, a valid waiver status for every failed result, and at least one supplied waiver record resolved as valid.
@@ -33,4 +36,5 @@ These notes record implementation-time refinements to the M0 plan.
 - Findings preserve a closed machine-readable category in addition to code and severity.
 - Receipt waiver records preserve exact target, scope, accepted risk, approver identity and resolved authority, issue/expiry times, validity status, and a normalized-input digest.
 - Evidence and receipt timestamp schemas add lexical RFC3339 assertions; semantic parsing and ordering remain explicit M1 ingestion requirements.
+- The evidence-binding TDD sequence used tests-only commits `e5ae469` and `185077c`, implementation commit `853ae4a`, and fixture-only correction `df95915`. Exact-head CI run `34151329570` passed formatting, vet, race tests, and CLI build on Go 1.26.x and Go 1.27.x.
 - The original M0 plan is marked superseded because accepted implementation refinements made its literal action pins, cache settings, ADR count, and build commands stale.
