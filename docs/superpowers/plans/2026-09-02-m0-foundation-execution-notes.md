@@ -12,6 +12,8 @@ These notes record implementation-time refinements to the M0 plan.
 - Decision validation fails closed when a normalized result claims a valid waiver for any state other than a waivable `VALID/FAILED` requirement.
 - The decision kernel now accepts normalized findings as a variadic input. A blocking finding yields `INDETERMINATE/BLOCKED` when requirements otherwise pass and preserves `FAILED/BLOCKED` when an established failure also exists; non-blocking findings do not change the result.
 - Finding input validation rejects empty codes/messages and unknown categories/severities before decision evaluation.
+- Optional finding requirement/evidence references use the shared canonical identifier grammar; duplicate evidence references within one finding fail closed.
+- Normalized requirement results are keyed by canonical `requirement_id`; duplicate requirement identifiers within a single evaluation fail closed before verdict derivation.
 - Receipt policy provenance records every contributing layer as a separate source with digest, resolved trust status, authority basis, and revision binding when applicable; the effective policy has its own digest.
 - Trusted-base policy sources use `revision_binding: SUBJECT_BASE` and cannot carry a free `source_revision`; this prevents a receipt from naming a trusted-base source at the candidate head or an unrelated revision while claiming subject-base authority.
 - A non-blocked authoritative policy requires exactly one trusted `protocol_baseline` source with `authority_basis: BUILTIN`.
@@ -37,4 +39,5 @@ These notes record implementation-time refinements to the M0 plan.
 - Receipt waiver records preserve exact target, scope, accepted risk, approver identity and resolved authority, issue/expiry times, validity status, and a normalized-input digest.
 - Evidence and receipt timestamp schemas add lexical RFC3339 assertions; semantic parsing and ordering remain explicit M1 ingestion requirements.
 - The evidence-binding TDD sequence used tests-only commits `e5ae469` and `185077c`, implementation commit `853ae4a`, and fixture-only correction `df95915`. Exact-head CI run `34151329570` passed formatting, vet, race tests, and CLI build on Go 1.26.x and Go 1.27.x.
+- The normalized-identifier uniqueness TDD sequence used tests-only commit `0b4fc28`; CI run `34152522027` failed only on duplicate requirement IDs and malformed/duplicate finding references. Implementation commit `b132a06` closed those gaps, and CI run `34152752138` passed the full Go 1.26.x/1.27.x matrix before documentation-only follow-up.
 - The original M0 plan is marked superseded because accepted implementation refinements made its literal action pins, cache settings, ADR count, and build commands stale.
