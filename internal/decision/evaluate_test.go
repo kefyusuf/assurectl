@@ -156,7 +156,7 @@ func TestEvaluateRejectsMalformedFindingFailClosed(t *testing.T) {
 			t.Parallel()
 			got, err := Evaluate(
 				[]domain.RequirementResult{requirement("unit-tests", domain.EvidenceValid, domain.OutcomePassed, false, domain.WaiverNotApplicable)},
-				t.finding,
+				tt.finding,
 			)
 			if err == nil {
 				t.Fatal("Evaluate() error = nil, want non-nil")
