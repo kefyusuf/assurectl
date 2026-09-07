@@ -18,11 +18,16 @@ var (
 func Evaluate(requirements []domain.RequirementResult, findings ...domain.Finding) (domain.EvaluationResult, error) {
 	knownFailure := false
 	indeterminate := false
+	seenRequirementIDs := make(map[string]struct{}, len(requirements))
 
 	for i, requirement := range requirements {
 		if err := validateRequirement(i, requirement); err != nil {
 			return blockedIndeterminate, err
 		}
+		if _, exists := seenRequirementIDs[requirement.RequirementID]; exists {
+			return blockedIndeterminate, fmt.Errorf("requirement[%d].requirement_id: duplicate identifier %q", i, requirement.RequirementID)
+		}
+		seenRequirementIDs[requirement.RequirementID] = struct{}{}
 
 		if requirement.EvidenceState != domain.EvidenceValid {
 			indeterminate = true
@@ -133,6 +138,21 @@ func validateFinding(index int, finding domain.Finding) error {
 	if !finding.Severity.Valid() {
 		return fmt.Errorf("finding[%d].severity: unsupported value %q", index, finding.Severity)
 	}
+	if finding.RequirementID != "" && !canonicalIdentifier.MatchString(finding.RequirementID) {
+		return fmt.Errorf("finding[%d].requirement_id: must be a canonical identifier", index)
+	}
+
+	seenEvidenceIDs := make(map[string]struct{}, len(finding.EvidenceIDs))
+	for i, evidenceID := range finding.EvidenceIDs {
+		if !canonicalIdentifier.MatchString(evidenceID) {
+			return fmt.Errorf("finding[%d].evidence_ids[%d]: must be a canonical identifier", index, i)
+		}
+		if _, exists := seenEvidenceIDs[evidenceID]; exists {
+			return fmt.Errorf("finding[%d].evidence_ids[%d]: duplicate evidence identifier %q", index, i, evidenceID)
+		}
+		seenEvidenceIDs[evidenceID] = struct{}{}
+	}
+
 	if finding.Message == "" {
 		return fmt.Errorf("finding[%d].message: must not be empty", index)
 	}
