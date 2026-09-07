@@ -2,6 +2,7 @@ package domain
 
 import (
 	"encoding/json"
+	"reflect"
 	"strings"
 	"testing"
 )
@@ -122,6 +123,7 @@ func TestRequirementResultJSONRoundTrip(t *testing.T) {
 	want := RequirementResult{
 		RequirementID: "unit-tests",
 		EvidenceState: EvidenceValid,
+		EvidenceIDs:   []string{"ev-unit-tests"},
 		Outcome:       OutcomeFailed,
 		Waivable:      true,
 		WaiverStatus:  WaiverValid,
@@ -137,7 +139,7 @@ func TestRequirementResultJSONRoundTrip(t *testing.T) {
 		t.Fatalf("json.Unmarshal() error = %v", err)
 	}
 
-	if got != want {
+	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("round trip = %#v, want %#v", got, want)
 	}
 }

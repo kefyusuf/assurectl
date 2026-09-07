@@ -2,15 +2,18 @@ package decision
 
 import (
 	"fmt"
-	"strings"
+	"regexp"
 
 	"github.com/kefyusuf/assurectl/internal/domain"
 )
 
-var blockedIndeterminate = domain.EvaluationResult{
-	Verdict:  domain.VerdictIndeterminate,
-	Decision: domain.DecisionBlocked,
-}
+var (
+	blockedIndeterminate = domain.EvaluationResult{
+		Verdict:  domain.VerdictIndeterminate,
+		Decision: domain.DecisionBlocked,
+	}
+	canonicalIdentifier = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$`)
+)
 
 func Evaluate(requirements []domain.RequirementResult, findings ...domain.Finding) (domain.EvaluationResult, error) {
 	knownFailure := false
@@ -83,12 +86,27 @@ func Evaluate(requirements []domain.RequirementResult, findings ...domain.Findin
 }
 
 func validateRequirement(index int, requirement domain.RequirementResult) error {
-	if strings.TrimSpace(requirement.RequirementID) == "" {
-		return fmt.Errorf("requirement[%d].requirement_id: must not be empty", index)
+	if !canonicalIdentifier.MatchString(requirement.RequirementID) {
+		return fmt.Errorf("requirement[%d].requirement_id: must be a canonical identifier", index)
 	}
 	if !requirement.EvidenceState.Valid() {
 		return fmt.Errorf("requirement %q evidence_state: unsupported value %q", requirement.RequirementID, requirement.EvidenceState)
 	}
+	if requirement.EvidenceState == domain.EvidenceValid && len(requirement.EvidenceIDs) == 0 {
+		return fmt.Errorf("requirement %q evidence_ids: at least one evidence reference is required for VALID evidence", requirement.RequirementID)
+	}
+
+	seenEvidenceIDs := make(map[string]struct{}, len(requirement.EvidenceIDs))
+	for i, evidenceID := range requirement.EvidenceIDs {
+		if !canonicalIdentifier.MatchString(evidenceID) {
+			return fmt.Errorf("requirement %q evidence_ids[%d]: must be a canonical identifier", requirement.RequirementID, i)
+		}
+		if _, exists := seenEvidenceIDs[evidenceID]; exists {
+			return fmt.Errorf("requirement %q evidence_ids[%d]: duplicate evidence identifier %q", requirement.RequirementID, i, evidenceID)
+		}
+		seenEvidenceIDs[evidenceID] = struct{}{}
+	}
+
 	if requirement.Outcome != "" && !requirement.Outcome.Valid() {
 		return fmt.Errorf("requirement %q outcome: unsupported value %q", requirement.RequirementID, requirement.Outcome)
 	}

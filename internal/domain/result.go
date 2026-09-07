@@ -38,6 +38,7 @@ func (v CompletionDecision) Valid() bool {
 type RequirementResult struct {
 	RequirementID string          `json:"requirement_id"`
 	EvidenceState EvidenceState   `json:"evidence_state"`
+	EvidenceIDs   []string        `json:"evidence_ids,omitempty"`
 	Outcome       ObservedOutcome `json:"outcome,omitempty"`
 	Waivable      bool            `json:"waivable"`
 	WaiverStatus  WaiverStatus    `json:"waiver_status"`

@@ -156,7 +156,7 @@ func TestEvaluateRejectsMalformedFindingFailClosed(t *testing.T) {
 			t.Parallel()
 			got, err := Evaluate(
 				[]domain.RequirementResult{requirement("unit-tests", domain.EvidenceValid, domain.OutcomePassed, false, domain.WaiverNotApplicable)},
-				tt.finding,
+				t.finding,
 			)
 			if err == nil {
 				t.Fatal("Evaluate() error = nil, want non-nil")
@@ -246,13 +246,17 @@ func TestEvaluateIsRepeatable(t *testing.T) {
 }
 
 func requirement(id string, state domain.EvidenceState, outcome domain.ObservedOutcome, waivable bool, waiver domain.WaiverStatus) domain.RequirementResult {
-	return domain.RequirementResult{
+	result := domain.RequirementResult{
 		RequirementID: id,
 		EvidenceState: state,
 		Outcome:       outcome,
 		Waivable:      waivable,
 		WaiverStatus:  waiver,
 	}
+	if state == domain.EvidenceValid {
+		result.EvidenceIDs = []string{"ev-" + id}
+	}
+	return result
 }
 
 func finding(code string, blocking bool) domain.Finding {
