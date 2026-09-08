@@ -165,7 +165,8 @@ func TestResolveRejectsNonRepositoryAndBareRepository(t *testing.T) {
 	}
 
 	bare := filepath.Join(t.TempDir(), "bare.git")
-	cmd := exec.CommandContext(t.Context(), "git", "init", "--bare", bare)
+	cmd := exec.CommandContext(t.Context(), "git", "init", "--bare", "--initial-branch=main", bare)
+	cmd.Env = isolatedTestGitEnvironment(os.Environ())
 	if output, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("git init --bare: %v\n%s", err, output)
 	}
@@ -216,7 +217,7 @@ func newTestRepository(t *testing.T) string {
 	t.Helper()
 
 	repo := t.TempDir()
-	runTestGit(t, repo, "init")
+	runTestGit(t, repo, "init", "--initial-branch=main")
 	runTestGit(t, repo, "config", "user.name", "AssureCTL Test")
 	runTestGit(t, repo, "config", "user.email", "assurectl-test@example.invalid")
 	return repo
@@ -239,9 +240,44 @@ func runTestGit(t *testing.T, repo string, args ...string) string {
 
 	commandArgs := append([]string{"-C", repo}, args...)
 	cmd := exec.CommandContext(t.Context(), "git", commandArgs...)
+	cmd.Env = isolatedTestGitEnvironment(os.Environ())
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		t.Fatalf("git %s: %v\n%s", strings.Join(commandArgs, " "), err, output)
 	}
 	return string(output)
+}
+
+func isolatedTestGitEnvironment(environment []string) []string {
+	blocked := map[string]struct{}{
+		"GIT_CONFIG":            {},
+		"GIT_CONFIG_COUNT":      {},
+		"GIT_CONFIG_GLOBAL":     {},
+		"GIT_CONFIG_NOSYSTEM":   {},
+		"GIT_CONFIG_PARAMETERS": {},
+		"GIT_CONFIG_SYSTEM":     {},
+		"GIT_DIR":               {},
+		"GIT_TERMINAL_PROMPT":   {},
+		"GIT_WORK_TREE":         {},
+	}
+
+	clean := make([]string, 0, len(environment)+3)
+	for _, entry := range environment {
+		name, _, found := strings.Cut(entry, "=")
+		if !found {
+			continue
+		}
+		if _, skip := blocked[name]; skip {
+			continue
+		}
+		if strings.HasPrefix(name, "GIT_CONFIG_KEY_") || strings.HasPrefix(name, "GIT_CONFIG_VALUE_") {
+			continue
+		}
+		clean = append(clean, entry)
+	}
+	return append(clean,
+		"GIT_CONFIG_GLOBAL="+os.DevNull,
+		"GIT_CONFIG_NOSYSTEM=1",
+		"GIT_TERMINAL_PROMPT=0",
+	)
 }
