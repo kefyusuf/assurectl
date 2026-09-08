@@ -1,0 +1,85 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/kefyusuf/assurectl/schemas/verification-contract.v0.schema.json",
+  "title": "AssureCTL Verification Contract v0",
+  "description": "Unstable v0 contract schema binding a software work unit to acceptance criteria and verification requirements.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "work_unit",
+    "acceptance_criteria"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "assurectl/verification-contract/v0"
+    },
+    "work_unit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "type",
+        "objective"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "pull_request",
+            "commit",
+            "release_candidate",
+            "api_migration",
+            "sdk_migration",
+            "framework_upgrade",
+            "dependency_upgrade",
+            "security_remediation"
+          ]
+        },
+        "objective": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        }
+      }
+    },
+    "acceptance_criteria": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "statement",
+          "requirements"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+          },
+          "statement": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          },
+          "requirements": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "schema_version": "assurectl/example-test-report/v0",
+  "suite": "unit-tests",
+  "tests": 12,
+  "failures": 0,
+  "errors": 0,
+  "duration_ms": 418
+}

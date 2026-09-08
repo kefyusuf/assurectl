@@ -1,0 +1,34 @@
+{
+  "schema_version": "assurectl/evidence-envelope/v0",
+  "id": "ev-unit-tests-001",
+  "type": "test-result",
+  "subject": {
+    "repository_uri": "github.com/example/checkout",
+    "revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+  },
+  "producer": {
+    "type": "local-user",
+    "identity": "example-developer"
+  },
+  "invocation": {
+    "command_id": "test.unit",
+    "environment_digest": {
+      "algorithm": "sha256",
+      "value": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+    },
+    "started_at": "2026-09-02T09:10:00Z",
+    "finished_at": "2026-09-02T09:10:01Z"
+  },
+  "outcome": {
+    "status": "PASSED",
+    "exit_code": 0
+  },
+  "artifact": {
+    "uri": "artifacts/unit-tests.json",
+    "digest": {
+      "algorithm": "sha256",
+      "value": "8715b006ab274c673d2a6dc6391baeff97b3827816125e02fda0fadebcf36263"
+    },
+    "media_type": "application/json"
+  }
+}
