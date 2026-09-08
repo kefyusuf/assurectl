@@ -86,6 +86,11 @@ func resolveWorktreeRoot(ctx context.Context, worktree string) (string, error) {
 	}
 	absolute = filepath.Clean(absolute)
 
+	initialGitDir, err := resolveGitDirectory(ctx, absolute)
+	if err != nil {
+		return "", fmt.Errorf("resolve Git directory from caller path: %w", err)
+	}
+
 	rootOutput, err := runGit(ctx, absolute, "rev-parse", "--show-toplevel")
 	if err != nil {
 		return "", fmt.Errorf("resolve Git worktree root: %w", err)
@@ -93,6 +98,18 @@ func resolveWorktreeRoot(ctx context.Context, worktree string) (string, error) {
 	root, err := parseGitPathOutput(rootOutput)
 	if err != nil {
 		return "", fmt.Errorf("parse Git worktree root: %w", err)
+	}
+	root, err = normalizeFilesystemPath(root)
+	if err != nil {
+		return "", fmt.Errorf("normalize Git worktree root: %w", err)
+	}
+
+	rootGitDir, err := resolveGitDirectory(ctx, root)
+	if err != nil {
+		return "", fmt.Errorf("resolve Git directory from discovered root: %w", err)
+	}
+	if initialGitDir != rootGitDir {
+		return "", fmt.Errorf("discovered worktree root belongs to a different Git directory")
 	}
 
 	insideOutput, err := runGit(ctx, root, "rev-parse", "--is-inside-work-tree")
@@ -102,18 +119,32 @@ func resolveWorktreeRoot(ctx context.Context, worktree string) (string, error) {
 	if strings.TrimSpace(string(insideOutput)) != "true" {
 		return "", fmt.Errorf("path is not inside a Git worktree")
 	}
-
-	root, err = filepath.Abs(root)
-	if err != nil {
-		return "", fmt.Errorf("normalize Git worktree root: %w", err)
-	}
-	root = filepath.Clean(root)
-	if resolved, evalErr := filepath.EvalSymlinks(root); evalErr == nil {
-		root = filepath.Clean(resolved)
-	} else {
-		return "", fmt.Errorf("resolve Git worktree symlinks: %w", evalErr)
-	}
 	return root, nil
+}
+
+func resolveGitDirectory(ctx context.Context, worktree string) (string, error) {
+	output, err := runGit(ctx, worktree, "rev-parse", "--absolute-git-dir")
+	if err != nil {
+		return "", err
+	}
+	path, err := parseGitPathOutput(output)
+	if err != nil {
+		return "", err
+	}
+	return normalizeFilesystemPath(path)
+}
+
+func normalizeFilesystemPath(path string) (string, error) {
+	absolute, err := filepath.Abs(path)
+	if err != nil {
+		return "", err
+	}
+	absolute = filepath.Clean(absolute)
+	resolved, err := filepath.EvalSymlinks(absolute)
+	if err != nil {
+		return "", err
+	}
+	return filepath.Clean(resolved), nil
 }
 
 func parseGitPathOutput(output []byte) (string, error) {
