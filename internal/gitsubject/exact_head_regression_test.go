@@ -14,6 +14,12 @@ func TestCanonicalizeRepositoryURIRejectsImplicitSSHUser(t *testing.T) {
 	}
 }
 
+func TestCanonicalizeRepositoryURIRejectsAbsoluteSCPLikePath(t *testing.T) {
+	if _, err := canonicalizeRepositoryURI("git@example.com:/srv/checkout.git"); err == nil {
+		t.Fatal("canonicalizeRepositoryURI accepted an absolute SCP-like repository path")
+	}
+}
+
 func TestResolveMarksSkipWorktreeTrackedEditDirty(t *testing.T) {
 	repo := newTestRepository(t)
 	commit := commitFile(t, repo, "tracked.txt", "tracked\n")
@@ -32,6 +38,27 @@ func TestResolveMarksSkipWorktreeTrackedEditDirty(t *testing.T) {
 	}
 	if !got.Dirty {
 		t.Fatal("Resolve treated a skip-worktree tracked edit as clean")
+	}
+}
+
+func TestResolveMarksExecutableBitChangeDirtyWhenCoreFilemodeDisabled(t *testing.T) {
+	repo := newTestRepository(t)
+	commit := commitFile(t, repo, "script.sh", "#!/bin/sh\nexit 0\n")
+	runTestGit(t, repo, "config", "--local", "core.filemode", "false")
+	if err := os.Chmod(filepath.Join(repo, "script.sh"), 0o700); err != nil {
+		t.Fatalf("chmod tracked file: %v", err)
+	}
+
+	got, err := Resolve(context.Background(), repo, Options{
+		RepositoryURI: "https://github.com/acme/checkout.git",
+		BaseRef:       commit,
+		HeadRef:       commit,
+	})
+	if err != nil {
+		t.Fatalf("Resolve: %v", err)
+	}
+	if !got.Dirty {
+		t.Fatal("Resolve treated an executable-bit change as clean with core.filemode=false")
 	}
 }
 
