@@ -198,6 +198,23 @@ func localRepositoryIdentity(root string) string {
 }
 
 func worktreeDirty(ctx context.Context, root string) (bool, error) {
+	indexOutput, err := runGit(ctx, root, "ls-files", "-v", "-z")
+	if err != nil {
+		return false, fmt.Errorf("inspect Git index flags: %w", err)
+	}
+	for _, record := range strings.Split(string(indexOutput), "\x00") {
+		if record == "" {
+			continue
+		}
+		if len(record) < 2 || record[1] != ' ' {
+			return false, fmt.Errorf("inspect Git index flags: malformed ls-files record")
+		}
+		tag := record[0]
+		if tag >= 'a' && tag <= 'z' {
+			return true, nil
+		}
+	}
+
 	output, err := runGit(ctx, root, "status", "--porcelain=v1", "-z", "--untracked-files=all", "--ignore-submodules=none")
 	if err != nil {
 		return false, fmt.Errorf("inspect Git worktree status: %w", err)
