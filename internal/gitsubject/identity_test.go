@@ -59,7 +59,7 @@ func TestCanonicalizeRepositoryURIRejectsAmbiguousOrUnsafeInputs(t *testing.T) {
 	inputs := []string{
 		"",
 		"https://github.com/",
-		"https://user:secret@github.com/acme/checkout.git",
+		"https://placeholder-user:placeholder-token@github.com/acme/checkout.git",
 		"https://github.com/acme/checkout.git?ref=main",
 		"https://github.com/acme/checkout.git#fragment",
 		"https://github.com/acme/../checkout.git",
@@ -74,6 +74,23 @@ func TestCanonicalizeRepositoryURIRejectsAmbiguousOrUnsafeInputs(t *testing.T) {
 			t.Parallel()
 			if got, err := canonicalizeRepositoryURI(raw); err == nil {
 				t.Fatalf("canonicalizeRepositoryURI(%q) = %q, want error", raw, got)
+			}
+		})
+	}
+}
+
+func TestCanonicalizeRepositoryURIRejectsExplicitPorts(t *testing.T) {
+	t.Parallel()
+
+	for _, raw := range []string{
+		"ssh://git@git.example.com:7999/proj/repo.git",
+		"https://git.example.com:8443/proj/repo.git",
+	} {
+		raw := raw
+		t.Run(raw, func(t *testing.T) {
+			t.Parallel()
+			if got, err := canonicalizeRepositoryURI(raw); err == nil {
+				t.Fatalf("canonicalizeRepositoryURI(%q) = %q, want unsupported-port error", raw, got)
 			}
 		})
 	}
