@@ -45,13 +45,14 @@ func canonicalizeRepositoryURI(raw string) (string, error) {
 			return "", fmt.Errorf("repository URI credentials are unsupported")
 		}
 	case "ssh":
-		if parsed.User != nil {
-			if _, hasPassword := parsed.User.Password(); hasPassword {
-				return "", fmt.Errorf("repository URI passwords are unsupported")
-			}
-			if parsed.User.Username() != "git" {
-				return "", fmt.Errorf("repository URI SSH username is unsupported")
-			}
+		if parsed.User == nil {
+			return "", fmt.Errorf("repository URI SSH username is required")
+		}
+		if _, hasPassword := parsed.User.Password(); hasPassword {
+			return "", fmt.Errorf("repository URI passwords are unsupported")
+		}
+		if parsed.User.Username() != "git" {
+			return "", fmt.Errorf("repository URI SSH username is unsupported")
 		}
 	default:
 		return "", fmt.Errorf("repository URI scheme %q is unsupported", parsed.Scheme)
