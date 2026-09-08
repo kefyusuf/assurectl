@@ -190,8 +190,8 @@ func worktreeDirty(ctx context.Context, root string) (bool, error) {
 }
 
 func runGit(ctx context.Context, worktree string, args ...string) ([]byte, error) {
-	commandArgs := make([]string, 0, len(args)+2)
-	commandArgs = append(commandArgs, "-C", worktree)
+	commandArgs := make([]string, 0, len(args)+4)
+	commandArgs = append(commandArgs, "-c", "core.fsmonitor=false", "-C", worktree)
 	commandArgs = append(commandArgs, args...)
 
 	cmd := exec.CommandContext(ctx, "git", commandArgs...)
