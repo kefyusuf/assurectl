@@ -229,7 +229,7 @@ func localRepositoryIdentity(root string) string {
 }
 
 func worktreeDirty(ctx context.Context, root string) (bool, error) {
-	indexOutput, err := runGit(ctx, root, "ls-files", "-v", "-z")
+	indexOutput, err := runGit(ctx, root, "ls-files", "-s", "-v", "-z")
 	if err != nil {
 		return false, fmt.Errorf("inspect Git index flags: %w", err)
 	}
@@ -237,11 +237,17 @@ func worktreeDirty(ctx context.Context, root string) (bool, error) {
 		if record == "" {
 			continue
 		}
-		if len(record) < 2 || record[1] != ' ' {
+		tab := strings.IndexByte(record, '\t')
+		if tab < 0 {
 			return false, fmt.Errorf("inspect Git index flags: malformed ls-files record")
 		}
-		tag := record[0]
-		if (tag >= 'a' && tag <= 'z') || tag == 'S' {
+		metadata := strings.Fields(record[:tab])
+		if len(metadata) != 4 || len(metadata[0]) != 1 {
+			return false, fmt.Errorf("inspect Git index flags: malformed ls-files metadata")
+		}
+		tag := metadata[0][0]
+		mode := metadata[1]
+		if (tag >= 'a' && tag <= 'z') || tag == 'S' || mode == "160000" {
 			return true, nil
 		}
 	}
