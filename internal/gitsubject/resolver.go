@@ -210,7 +210,7 @@ func worktreeDirty(ctx context.Context, root string) (bool, error) {
 			return false, fmt.Errorf("inspect Git index flags: malformed ls-files record")
 		}
 		tag := record[0]
-		if tag >= 'a' && tag <= 'z' {
+		if (tag >= 'a' && tag <= 'z') || tag == 'S' {
 			return true, nil
 		}
 	}
