@@ -18,9 +18,9 @@ The implementation follows ADR-0003 and the consolidated foundation design:
 - subject identity is repository + exact base revision + exact head revision + versioned change-set digest;
 - branch names and pull-request numbers are not immutable subject identity;
 - repository identity resolves in precedence order: explicit caller URI, normalized local `origin`, local advisory fallback;
-- only explicitly supported SSH/HTTP(S) forms are canonicalized; SSH requires the explicit `git` username, while omitted/other usernames, ports, credentials, percent-encoding, surrounding whitespace, and ambiguous paths fail closed;
+- only explicitly supported SSH/HTTP(S) forms are canonicalized; SSH requires the explicit `git` username, while omitted/other usernames, ports, credentials, percent-encoding, surrounding whitespace, absolute SCP-like remote paths, and ambiguous paths fail closed;
 - the discovered worktree root must resolve back to the same absolute Git directory as the caller path, so repository-local `core.worktree` cannot redirect resolution into another checkout;
-- dirty worktrees are detectable and remain advisory-only; `assume-unchanged`, `skip-worktree`, and unverified gitlink/submodule entries are treated conservatively as dirty rather than permitting a clean claim;
+- dirty worktrees are detectable and remain advisory-only; `assume-unchanged`, `skip-worktree`, executable-bit changes hidden by repository-local `core.filemode`, and unverified gitlink/submodule entries cannot produce a clean claim;
 - recursive submodule cleanliness is not claimed in this slice;
 - no network fetch occurs during subject resolution, including partial-clone lazy fetching;
 - replacement refs are disabled during revision resolution;
@@ -64,10 +64,11 @@ No public Go API is introduced.
    - use explicit `RepositoryURI` when supplied;
    - otherwise read only repository-local `remote.origin.url` values;
    - normalize only the supported SSH/HTTP(S) forms;
+   - reject absolute SCP-like remote paths rather than collapsing them with relative remote paths;
    - fail closed when multiple distinct origin identities are ambiguous;
    - never include a rejected raw origin value in an error message;
    - if no origin exists, derive a non-path-revealing local advisory identifier from the normalized worktree root.
-7. Inspect index flags and modes before porcelain status. Any `assume-unchanged` entry, `skip-worktree` entry, or gitlink mode `160000` reports `Dirty=true` conservatively. This avoids claiming nested submodule cleanliness that M1.1 does not verify. Otherwise detect tracked/untracked worktree changes with porcelain output.
+7. Inspect index flags and modes before porcelain status. Any `assume-unchanged` entry, `skip-worktree` entry, or gitlink mode `160000` reports `Dirty=true` conservatively. Force `core.filemode=true` for resolver Git subprocesses so repository-local configuration cannot hide executable-bit changes. This avoids claiming nested submodule cleanliness that M1.1 does not verify while preserving fail-closed worktree mode checks.
 8. Compute:
 
 ```text
@@ -85,7 +86,7 @@ sha256(
 
 M1.1 supports a deliberately small, deterministic identity surface:
 
-- SCP-like SSH: `git@host:owner/repo.git` only;
+- SCP-like SSH: relative `git@host:owner/repo.git` only; a leading slash after the colon is rejected because it denotes an identity-significant absolute remote path;
 - SSH URL: `ssh://git@host/...` only; an omitted username would inherit the operating-system login and is therefore identity-significant and rejected;
 - `https://host/...` and `http://host/...` as identity inputs;
 - canonical output is `host/path` with lowercase host and a trailing `.git` removed;
@@ -110,6 +111,7 @@ The subprocess boundary is intentionally narrower than the caller environment:
 - `GIT_OPTIONAL_LOCKS=0` keeps read-style inspection from optional index writes;
 - `GIT_TRACE*`, `GIT_EXEC_PATH`, `GIT_NAMESPACE`, Git/SSH askpass and SSH command overrides are removed;
 - `core.fsmonitor=false` is injected on each invocation so repository-local fsmonitor commands cannot execute during status/index inspection;
+- `core.filemode=true` is injected so repository-local `core.filemode=false` cannot suppress executable-bit dirty state;
 - worktree discovery is bound back to the caller's Git-directory identity before revision, origin, or dirty-state resolution proceeds.
 
 Repository-local `remote.origin.url` remains deliberately readable because it is an identity input; arbitrary trust is never inferred from it.
@@ -190,6 +192,10 @@ Self-review reproduced a repository-local `core.worktree` redirect that could ma
 
 Self-review also reproduced a false-clean nested state: a submodule can contain hidden worktree/index state that parent porcelain status does not establish. Test-only commit `148da7d5905f321ea94ae85aca18fd8fada1db1e` failed in CI run `34284087666` because a gitlink was still reported clean. Commit `15a80d945bae52fec8a8ec15e385d30acc70f119` treats gitlink mode `160000` as conservatively dirty; CI run `34284270829` passed the full matrix. Recursive submodule assurance remains explicitly out of scope.
 
+### RED/GREEN 7 — SCP absolute-path and executable-mode binding
+
+Review-thread cleanup exposed two still-valid findings. Test-only commit `ad4dda08e77475b8340bd886cdb88ba9e4d70a51` added regressions for an absolute SCP-like remote path and an executable-bit change hidden by `core.filemode=false`; CI run `34285349635` failed at exactly those two tests after formatting and vet passed. Commit `c9234e0466e9f3a18fa383339d0a0ab0885eee7e` rejected absolute SCP-like paths; CI run `34285515247` then left only the filemode regression failing. Commit `9c5644fed14accbd957cf2536b22fea9117a2ca8` pins `core.filemode=true`, and CI run `34285672694` passed the full Go 1.26.x / 1.27.x matrix.
+
 ## Verification
 
 Required before merge:
@@ -210,9 +216,10 @@ This slice is complete only when:
 
 - the resolver returns exact immutable Git subject data for local repositories;
 - repository identity precedence is deterministic and tested;
+- absolute and relative SCP-like remote paths cannot collapse to one identity;
 - the discovered worktree cannot be redirected to a different Git-directory identity;
 - dirty and local-only states are explicit rather than silently promoted;
-- hidden index state and unverified gitlinks cannot produce a clean claim;
+- hidden index state, executable-bit changes, and unverified gitlinks cannot produce a clean claim;
 - malformed/ambiguous inputs fail closed without leaking raw credential-bearing origins;
 - no remote fetch, repository-controlled fsmonitor command, inherited Git trace write, or shell execution path is introduced;
 - exact-head CI is green;
