@@ -214,21 +214,32 @@ func runGit(ctx context.Context, worktree string, args ...string) ([]byte, error
 func sanitizedGitEnvironment(environment []string) []string {
 	blockedExact := map[string]struct{}{
 		"GIT_ALTERNATE_OBJECT_DIRECTORIES": {},
+		"GIT_ASKPASS":                      {},
 		"GIT_CEILING_DIRECTORIES":          {},
 		"GIT_COMMON_DIR":                   {},
 		"GIT_CONFIG":                       {},
 		"GIT_CONFIG_COUNT":                 {},
 		"GIT_CONFIG_GLOBAL":                {},
+		"GIT_CONFIG_NOSYSTEM":              {},
 		"GIT_CONFIG_PARAMETERS":            {},
 		"GIT_CONFIG_SYSTEM":                {},
 		"GIT_DIR":                          {},
 		"GIT_DISCOVERY_ACROSS_FILESYSTEM":  {},
+		"GIT_EXEC_PATH":                    {},
 		"GIT_INDEX_FILE":                   {},
+		"GIT_NAMESPACE":                    {},
+		"GIT_NO_LAZY_FETCH":                {},
+		"GIT_NO_REPLACE_OBJECTS":           {},
 		"GIT_OBJECT_DIRECTORY":             {},
+		"GIT_OPTIONAL_LOCKS":               {},
+		"GIT_SSH":                          {},
+		"GIT_SSH_COMMAND":                  {},
+		"GIT_TERMINAL_PROMPT":              {},
 		"GIT_WORK_TREE":                    {},
+		"SSH_ASKPASS":                      {},
 	}
 
-	clean := make([]string, 0, len(environment))
+	clean := make([]string, 0, len(environment)+6)
 	for _, entry := range environment {
 		name, _, found := strings.Cut(entry, "=")
 		if !found {
@@ -240,7 +251,19 @@ func sanitizedGitEnvironment(environment []string) []string {
 		if strings.HasPrefix(name, "GIT_CONFIG_KEY_") || strings.HasPrefix(name, "GIT_CONFIG_VALUE_") {
 			continue
 		}
+		if strings.HasPrefix(name, "GIT_TRACE") {
+			continue
+		}
 		clean = append(clean, entry)
 	}
+
+	clean = append(clean,
+		"GIT_CONFIG_GLOBAL="+os.DevNull,
+		"GIT_CONFIG_NOSYSTEM=1",
+		"GIT_TERMINAL_PROMPT=0",
+		"GIT_NO_LAZY_FETCH=1",
+		"GIT_NO_REPLACE_OBJECTS=1",
+		"GIT_OPTIONAL_LOCKS=0",
+	)
 	return clean
 }
