@@ -33,3 +33,22 @@ func TestResolveMarksSkipWorktreeTrackedEditDirty(t *testing.T) {
 		t.Fatal("Resolve treated a skip-worktree tracked edit as clean")
 	}
 }
+
+func TestResolveRejectsCoreWorktreeRedirectToDifferentRepository(t *testing.T) {
+	parent := t.TempDir()
+	first := filepath.Join(parent, "first")
+	second := filepath.Join(parent, "second")
+	initRepositoryAt(t, first)
+	initRepositoryAt(t, second)
+	_ = commitFile(t, first, "first.txt", "first\n")
+	_ = commitFile(t, second, "second.txt", "second\n")
+	runTestGit(t, first, "config", "--local", "core.worktree", second)
+
+	if _, err := Resolve(context.Background(), first, Options{
+		RepositoryURI: "https://github.com/acme/checkout.git",
+		BaseRef:       "HEAD",
+		HeadRef:       "HEAD",
+	}); err == nil {
+		t.Fatal("Resolve followed core.worktree into a different repository")
+	}
+}
