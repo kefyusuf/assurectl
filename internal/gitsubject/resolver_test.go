@@ -13,7 +13,7 @@ func TestResolveExplicitRepositoryURIAndExactRevisions(t *testing.T) {
 	repo := newTestRepository(t)
 	base := commitFile(t, repo, "base.txt", "base\n")
 	head := commitFile(t, repo, "head.txt", "head\n")
-	runGit(t, repo, "remote", "add", "origin", "https://github.com/other/project.git")
+	runTestGit(t, repo, "remote", "add", "origin", "https://github.com/other/project.git")
 
 	got, err := Resolve(context.Background(), repo, Options{
 		RepositoryURI: "git@github.com:acme/checkout.git",
@@ -55,7 +55,7 @@ func TestResolveExplicitRepositoryURIAndExactRevisions(t *testing.T) {
 func TestResolveUsesOriginWhenExplicitRepositoryURIOmitted(t *testing.T) {
 	repo := newTestRepository(t)
 	commit := commitFile(t, repo, "tracked.txt", "tracked\n")
-	runGit(t, repo, "remote", "add", "origin", "ssh://git@GITHUB.COM/acme/checkout.git")
+	runTestGit(t, repo, "remote", "add", "origin", "ssh://git@GITHUB.COM/acme/checkout.git")
 
 	got, err := Resolve(context.Background(), repo, Options{BaseRef: commit, HeadRef: commit})
 	if err != nil {
@@ -72,8 +72,8 @@ func TestResolveUsesOriginWhenExplicitRepositoryURIOmitted(t *testing.T) {
 func TestResolveAcceptsEquivalentMultipleOriginURLs(t *testing.T) {
 	repo := newTestRepository(t)
 	commit := commitFile(t, repo, "tracked.txt", "tracked\n")
-	runGit(t, repo, "config", "--local", "--add", "remote.origin.url", "https://github.com/acme/checkout.git")
-	runGit(t, repo, "config", "--local", "--add", "remote.origin.url", "git@github.com:acme/checkout.git")
+	runTestGit(t, repo, "config", "--local", "--add", "remote.origin.url", "https://github.com/acme/checkout.git")
+	runTestGit(t, repo, "config", "--local", "--add", "remote.origin.url", "git@github.com:acme/checkout.git")
 
 	got, err := Resolve(context.Background(), repo, Options{BaseRef: commit, HeadRef: commit})
 	if err != nil {
@@ -87,8 +87,8 @@ func TestResolveAcceptsEquivalentMultipleOriginURLs(t *testing.T) {
 func TestResolveRejectsAmbiguousOriginURLs(t *testing.T) {
 	repo := newTestRepository(t)
 	commit := commitFile(t, repo, "tracked.txt", "tracked\n")
-	runGit(t, repo, "config", "--local", "--add", "remote.origin.url", "https://github.com/acme/checkout.git")
-	runGit(t, repo, "config", "--local", "--add", "remote.origin.url", "https://github.com/acme/other.git")
+	runTestGit(t, repo, "config", "--local", "--add", "remote.origin.url", "https://github.com/acme/checkout.git")
+	runTestGit(t, repo, "config", "--local", "--add", "remote.origin.url", "https://github.com/acme/other.git")
 
 	if _, err := Resolve(context.Background(), repo, Options{BaseRef: commit, HeadRef: commit}); err == nil {
 		t.Fatal("Resolve accepted ambiguous origin identities")
@@ -216,9 +216,9 @@ func newTestRepository(t *testing.T) string {
 	t.Helper()
 
 	repo := t.TempDir()
-	runGit(t, repo, "init")
-	runGit(t, repo, "config", "user.name", "AssureCTL Test")
-	runGit(t, repo, "config", "user.email", "assurectl-test@example.invalid")
+	runTestGit(t, repo, "init")
+	runTestGit(t, repo, "config", "user.name", "AssureCTL Test")
+	runTestGit(t, repo, "config", "user.email", "assurectl-test@example.invalid")
 	return repo
 }
 
@@ -229,12 +229,12 @@ func commitFile(t *testing.T, repo, name, contents string) string {
 	if err := os.WriteFile(path, []byte(contents), 0o600); err != nil {
 		t.Fatalf("write %s: %v", name, err)
 	}
-	runGit(t, repo, "add", "--", name)
-	runGit(t, repo, "commit", "-m", "test commit")
-	return strings.TrimSpace(runGit(t, repo, "rev-parse", "HEAD"))
+	runTestGit(t, repo, "add", "--", name)
+	runTestGit(t, repo, "commit", "-m", "test commit")
+	return strings.TrimSpace(runTestGit(t, repo, "rev-parse", "HEAD"))
 }
 
-func runGit(t *testing.T, repo string, args ...string) string {
+func runTestGit(t *testing.T, repo string, args ...string) string {
 	t.Helper()
 
 	commandArgs := append([]string{"-C", repo}, args...)
