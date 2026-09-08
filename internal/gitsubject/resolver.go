@@ -90,9 +90,9 @@ func resolveWorktreeRoot(ctx context.Context, worktree string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("resolve Git worktree root: %w", err)
 	}
-	root := strings.TrimSpace(string(rootOutput))
-	if root == "" {
-		return "", fmt.Errorf("Git worktree root is empty")
+	root, err := parseGitPathOutput(rootOutput)
+	if err != nil {
+		return "", fmt.Errorf("parse Git worktree root: %w", err)
 	}
 
 	insideOutput, err := runGit(ctx, root, "rev-parse", "--is-inside-work-tree")
@@ -114,6 +114,22 @@ func resolveWorktreeRoot(ctx context.Context, worktree string) (string, error) {
 		return "", fmt.Errorf("resolve Git worktree symlinks: %w", evalErr)
 	}
 	return root, nil
+}
+
+func parseGitPathOutput(output []byte) (string, error) {
+	text := string(output)
+	if !strings.HasSuffix(text, "\n") {
+		return "", fmt.Errorf("git path output is not newline-terminated")
+	}
+	text = strings.TrimSuffix(text, "\n")
+	text = strings.TrimSuffix(text, "\r")
+	if text == "" {
+		return "", fmt.Errorf("git path output is empty")
+	}
+	if strings.ContainsAny(text, "\x00\r\n") {
+		return "", fmt.Errorf("git path output contains an unexpected record separator")
+	}
+	return text, nil
 }
 
 func resolveCommit(ctx context.Context, root, label, ref string) (string, error) {
