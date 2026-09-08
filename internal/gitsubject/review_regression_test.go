@@ -62,12 +62,12 @@ func TestSanitizedGitEnvironmentPinsSafetyControls(t *testing.T) {
 	}))
 
 	want := map[string]string{
-		"GIT_CONFIG_GLOBAL":     os.DevNull,
-		"GIT_CONFIG_NOSYSTEM":   "1",
-		"GIT_TERMINAL_PROMPT":   "0",
-		"GIT_NO_LAZY_FETCH":     "1",
+		"GIT_CONFIG_GLOBAL":      os.DevNull,
+		"GIT_CONFIG_NOSYSTEM":    "1",
+		"GIT_TERMINAL_PROMPT":    "0",
+		"GIT_NO_LAZY_FETCH":      "1",
 		"GIT_NO_REPLACE_OBJECTS": "1",
-		"GIT_OPTIONAL_LOCKS":     "0",
+		"GIT_OPTIONAL_LOCKS":      "0",
 	}
 	for key, value := range want {
 		if got[key] != value {
