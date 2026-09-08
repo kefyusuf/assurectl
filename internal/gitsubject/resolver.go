@@ -152,13 +152,13 @@ func resolveRepositoryIdentity(ctx context.Context, root, explicit string) (stri
 	}
 
 	identities := make(map[string]struct{})
-	for _, raw := range strings.Split(string(output), "\x00") {
+	for index, raw := range strings.Split(string(output), "\x00") {
 		if raw == "" {
 			continue
 		}
 		canonical, canonicalErr := canonicalizeRepositoryURI(raw)
 		if canonicalErr != nil {
-			return "", false, fmt.Errorf("canonicalize origin repository URI %q: %w", raw, canonicalErr)
+			return "", false, fmt.Errorf("canonicalize origin repository URI #%d: %w", index+1, canonicalErr)
 		}
 		identities[canonical] = struct{}{}
 	}
