@@ -230,7 +230,7 @@ func initRepositoryAt(t *testing.T, repo string) {
 	if err := os.Mkdir(repo, 0o755); err != nil {
 		t.Fatalf("mkdir repository %q: %v", repo, err)
 	}
-	runTestGit(t, repo, "init")
+	runTestGit(t, repo, "init", "--initial-branch=main")
 	runTestGit(t, repo, "config", "user.name", "AssureCTL Test")
 	runTestGit(t, repo, "config", "user.email", "assurectl-test@example.invalid")
 }
