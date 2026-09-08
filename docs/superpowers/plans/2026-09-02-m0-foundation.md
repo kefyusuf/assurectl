@@ -9,7 +9,7 @@ The original task-by-task plan is retained in Git history. It was superseded bec
 - GitHub Actions are pinned to immutable commit SHAs rather than mutable major tags.
 - Go dependency caching is disabled while the zero-dependency module has no `go.sum`.
 - ADR-0007 establishes that policy, contract, and evidence payloads cannot declare their own authority.
-- Receipt policy provenance records every contributing policy source rather than a single source string.
+- The non-enforcing draft receipt schema models policy provenance with every contributing policy source rather than a single source string; M0 does not construct or semantically accept receipts, and provenance enforcement begins in M1+.
 - Required build commands write binaries outside the worktree.
 - The accepted ADR count increased from six to seven.
 
