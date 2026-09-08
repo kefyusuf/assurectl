@@ -91,6 +91,9 @@ func canonicalizeSCPLikeURI(raw string) (string, error) {
 	if strings.ContainsAny(user+host, "/\\?#") {
 		return "", fmt.Errorf("SCP-like repository URI user or host is malformed")
 	}
+	if strings.HasPrefix(path, "/") {
+		return "", fmt.Errorf("SCP-like repository URI absolute paths are unsupported")
+	}
 	return canonicalHostPath(host, path)
 }
 
