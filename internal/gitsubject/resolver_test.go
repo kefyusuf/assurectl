@@ -165,7 +165,7 @@ func TestResolveRejectsNonRepositoryAndBareRepository(t *testing.T) {
 	}
 
 	bare := filepath.Join(t.TempDir(), "bare.git")
-	cmd := exec.Command("git", "init", "--bare", bare)
+	cmd := exec.CommandContext(t.Context(), "git", "init", "--bare", bare)
 	if output, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("git init --bare: %v\n%s", err, output)
 	}
@@ -238,7 +238,7 @@ func runTestGit(t *testing.T, repo string, args ...string) string {
 	t.Helper()
 
 	commandArgs := append([]string{"-C", repo}, args...)
-	cmd := exec.Command("git", commandArgs...)
+	cmd := exec.CommandContext(t.Context(), "git", commandArgs...)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		t.Fatalf("git %s: %v\n%s", strings.Join(commandArgs, " "), err, output)
