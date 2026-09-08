@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -50,5 +51,28 @@ func TestResolveRejectsCoreWorktreeRedirectToDifferentRepository(t *testing.T) {
 		HeadRef:       "HEAD",
 	}); err == nil {
 		t.Fatal("Resolve followed core.worktree into a different repository")
+	}
+}
+
+func TestResolveTreatsGitlinkAsAdvisoryDirty(t *testing.T) {
+	source := filepath.Join(t.TempDir(), "submodule-source")
+	initRepositoryAt(t, source)
+	_ = commitFile(t, source, "submodule.txt", "submodule\n")
+
+	repo := newTestRepository(t)
+	runTestGit(t, repo, "-c", "protocol.file.allow=always", "submodule", "add", "--", source, "submodule")
+	runTestGit(t, repo, "commit", "-m", "add submodule")
+	commit := strings.TrimSpace(runTestGit(t, repo, "rev-parse", "HEAD"))
+
+	got, err := Resolve(context.Background(), repo, Options{
+		RepositoryURI: "https://github.com/acme/checkout.git",
+		BaseRef:       commit,
+		HeadRef:       commit,
+	})
+	if err != nil {
+		t.Fatalf("Resolve: %v", err)
+	}
+	if !got.Dirty {
+		t.Fatal("Resolve treated a repository containing a gitlink as clean")
 	}
 }
