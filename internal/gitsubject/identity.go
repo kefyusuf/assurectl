@@ -11,9 +11,11 @@ import (
 const changeSetAlgorithm = "assurectl.git-change-set/v0"
 
 func canonicalizeRepositoryURI(raw string) (string, error) {
-	raw = strings.TrimSpace(raw)
 	if raw == "" {
 		return "", fmt.Errorf("repository URI is empty")
+	}
+	if strings.TrimSpace(raw) != raw {
+		return "", fmt.Errorf("repository URI has surrounding whitespace")
 	}
 	if strings.ContainsAny(raw, "\x00\r\n") {
 		return "", fmt.Errorf("repository URI contains a control character")
@@ -47,6 +49,9 @@ func canonicalizeRepositoryURI(raw string) (string, error) {
 			if _, hasPassword := parsed.User.Password(); hasPassword {
 				return "", fmt.Errorf("repository URI passwords are unsupported")
 			}
+			if parsed.User.Username() != "git" {
+				return "", fmt.Errorf("repository URI SSH username is unsupported")
+			}
 		}
 	default:
 		return "", fmt.Errorf("repository URI scheme %q is unsupported", parsed.Scheme)
@@ -79,6 +84,9 @@ func canonicalizeSCPLikeURI(raw string) (string, error) {
 	if user == "" || host == "" {
 		return "", fmt.Errorf("SCP-like repository URI user or host is empty")
 	}
+	if user != "git" {
+		return "", fmt.Errorf("SCP-like repository URI SSH username is unsupported")
+	}
 	if strings.ContainsAny(user+host, "/\\?#") {
 		return "", fmt.Errorf("SCP-like repository URI user or host is malformed")
 	}
@@ -86,7 +94,10 @@ func canonicalizeSCPLikeURI(raw string) (string, error) {
 }
 
 func canonicalHostPath(host, rawPath string) (string, error) {
-	host = strings.ToLower(strings.TrimSpace(host))
+	if strings.TrimSpace(host) != host {
+		return "", fmt.Errorf("repository URI host has surrounding whitespace")
+	}
+	host = strings.ToLower(host)
 	if host == "" || strings.ContainsAny(host, " \t/@?#\\") {
 		return "", fmt.Errorf("repository URI host is malformed")
 	}
