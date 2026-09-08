@@ -202,6 +202,8 @@ go test -race ./...
 go build -trimpath -o /tmp/assurectl ./cmd/assurectl
 ```
 
+Latest exact-head verification: commit `29c1587f678b8fb405aa53e1f74250d9d7f2e5ec`, GitHub Actions run `34284435745`, successful on Go 1.26.x and 1.27.x for formatting, vet, race tests, coverage, and CLI build.
+
 GitHub Actions remains the compatibility authority for the committed Go 1.26.x / 1.27.x matrix.
 
 ## Exit criteria
