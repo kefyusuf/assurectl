@@ -57,7 +57,7 @@ func Resolve(ctx context.Context, worktree string, opts Options) (Resolution, er
 		return Resolution{}, fmt.Errorf("compute change-set digest: %w", err)
 	}
 
-	dirty, err := worktreeDirty(ctx, root)
+	dirty, err := worktreeDirty(ctx, root, headRevision)
 	if err != nil {
 		return Resolution{}, err
 	}
@@ -85,13 +85,17 @@ func resolveWorktreeRoot(ctx context.Context, worktree string) (string, error) {
 		return "", fmt.Errorf("resolve worktree path: %w", err)
 	}
 	absolute = filepath.Clean(absolute)
+	callerPath, err := normalizeFilesystemPath(absolute)
+	if err != nil {
+		return "", fmt.Errorf("normalize caller worktree path: %w", err)
+	}
 
-	initialGitDir, err := resolveGitDirectory(ctx, absolute)
+	initialGitDir, err := resolveGitDirectory(ctx, callerPath)
 	if err != nil {
 		return "", fmt.Errorf("resolve Git directory from caller path: %w", err)
 	}
 
-	rootOutput, err := runGit(ctx, absolute, "rev-parse", "--show-toplevel")
+	rootOutput, err := runGit(ctx, callerPath, "rev-parse", "--show-toplevel")
 	if err != nil {
 		return "", fmt.Errorf("resolve Git worktree root: %w", err)
 	}
@@ -102,6 +106,14 @@ func resolveWorktreeRoot(ctx context.Context, worktree string) (string, error) {
 	root, err = normalizeFilesystemPath(root)
 	if err != nil {
 		return "", fmt.Errorf("normalize Git worktree root: %w", err)
+	}
+
+	inside, err := pathWithin(root, callerPath)
+	if err != nil {
+		return "", fmt.Errorf("compare caller and discovered worktree paths: %w", err)
+	}
+	if !inside {
+		return "", fmt.Errorf("caller path is outside the discovered Git worktree")
 	}
 
 	rootGitDir, err := resolveGitDirectory(ctx, root)
@@ -120,6 +132,18 @@ func resolveWorktreeRoot(ctx context.Context, worktree string) (string, error) {
 		return "", fmt.Errorf("path is not inside a Git worktree")
 	}
 	return root, nil
+}
+
+func pathWithin(root, candidate string) (bool, error) {
+	relative, err := filepath.Rel(root, candidate)
+	if err != nil {
+		return false, err
+	}
+	if relative == "." {
+		return true, nil
+	}
+	parent := ".." + string(filepath.Separator)
+	return relative != ".." && !strings.HasPrefix(relative, parent), nil
 }
 
 func resolveGitDirectory(ctx context.Context, worktree string) (string, error) {
@@ -167,6 +191,9 @@ func resolveCommit(ctx context.Context, root, label, ref string) (string, error)
 	if ref == "" || strings.TrimSpace(ref) != ref || strings.ContainsAny(ref, "\x00\r\n") {
 		return "", fmt.Errorf("%s ref is empty or malformed", label)
 	}
+	if err := validateRefInput(ctx, root, label, ref); err != nil {
+		return "", err
+	}
 
 	revision := ref + "^{commit}"
 	output, err := runGit(ctx, root, "rev-parse", "--verify", "--end-of-options", revision)
@@ -178,6 +205,22 @@ func resolveCommit(ctx context.Context, root, label, ref string) (string, error)
 		return "", fmt.Errorf("resolve %s ref %q: %w", label, ref, err)
 	}
 	return oid, nil
+}
+
+func validateRefInput(ctx context.Context, root, label, ref string) error {
+	if ref == "HEAD" {
+		return nil
+	}
+	if validateObjectID(ref) == nil {
+		return nil
+	}
+	if !strings.HasPrefix(ref, "refs/") {
+		return fmt.Errorf("%s ref must be HEAD, a full object ID, or a fully qualified refs/... name", label)
+	}
+	if _, err := runGit(ctx, root, "check-ref-format", ref); err != nil {
+		return fmt.Errorf("%s ref %q is not a canonical full ref: %w", label, ref, err)
+	}
+	return nil
 }
 
 func resolveRepositoryIdentity(ctx context.Context, root, explicit string) (string, bool, error) {
@@ -228,7 +271,15 @@ func localRepositoryIdentity(root string) string {
 	return "local://sha256/" + hex.EncodeToString(digest[:])
 }
 
-func worktreeDirty(ctx context.Context, root string) (bool, error) {
+func worktreeDirty(ctx context.Context, root, expectedHead string) (bool, error) {
+	checkoutHead, err := resolveCommit(ctx, root, "checkout HEAD", "HEAD")
+	if err != nil {
+		return false, fmt.Errorf("resolve checkout HEAD: %w", err)
+	}
+	if checkoutHead != expectedHead {
+		return true, nil
+	}
+
 	externalFilter, err := repositoryHasExternalCleanFilter(ctx, root)
 	if err != nil {
 		return false, err
@@ -280,8 +331,16 @@ func repositoryHasExternalCleanFilter(ctx context.Context, root string) (bool, e
 }
 
 func runGit(ctx context.Context, worktree string, args ...string) ([]byte, error) {
-	commandArgs := make([]string, 0, len(args)+6)
-	commandArgs = append(commandArgs, "-c", "core.fsmonitor=false", "-c", "core.filemode=true", "-C", worktree)
+	commandArgs := make([]string, 0, len(args)+16)
+	commandArgs = append(commandArgs,
+		"-c", "core.fsmonitor=false",
+		"-c", "core.filemode=true",
+		"-c", "core.symlinks=true",
+		"-c", "core.trustctime=true",
+		"-c", "core.checkStat=default",
+		"-c", "core.ignoreStat=false",
+		"-C", worktree,
+	)
 	commandArgs = append(commandArgs, args...)
 
 	cmd := exec.CommandContext(ctx, "git", commandArgs...)
@@ -335,13 +394,14 @@ func sanitizedGitEnvironment(environment []string) []string {
 		if !found {
 			continue
 		}
-		if _, blocked := blockedExact[name]; blocked {
+		canonicalName := strings.ToUpper(name)
+		if _, blocked := blockedExact[canonicalName]; blocked {
 			continue
 		}
-		if strings.HasPrefix(name, "GIT_CONFIG_KEY_") || strings.HasPrefix(name, "GIT_CONFIG_VALUE_") {
+		if strings.HasPrefix(canonicalName, "GIT_CONFIG_KEY_") || strings.HasPrefix(canonicalName, "GIT_CONFIG_VALUE_") {
 			continue
 		}
-		if strings.HasPrefix(name, "GIT_TRACE") {
+		if strings.HasPrefix(canonicalName, "GIT_TRACE") {
 			continue
 		}
 		clean = append(clean, entry)
