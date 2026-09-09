@@ -229,6 +229,14 @@ func localRepositoryIdentity(root string) string {
 }
 
 func worktreeDirty(ctx context.Context, root string) (bool, error) {
+	externalFilter, err := repositoryHasExternalCleanFilter(ctx, root)
+	if err != nil {
+		return false, err
+	}
+	if externalFilter {
+		return true, nil
+	}
+
 	indexOutput, err := runGit(ctx, root, "ls-files", "-s", "-v", "-z")
 	if err != nil {
 		return false, fmt.Errorf("inspect Git index flags: %w", err)
@@ -255,6 +263,18 @@ func worktreeDirty(ctx context.Context, root string) (bool, error) {
 	output, err := runGit(ctx, root, "status", "--porcelain=v1", "-z", "--untracked-files=all", "--ignore-submodules=none")
 	if err != nil {
 		return false, fmt.Errorf("inspect Git worktree status: %w", err)
+	}
+	return len(output) != 0, nil
+}
+
+func repositoryHasExternalCleanFilter(ctx context.Context, root string) (bool, error) {
+	output, err := runGit(ctx, root, "config", "--includes", "--local", "--null", "--get-regexp", `^filter\..*\.(clean|process)$`)
+	if err != nil {
+		var exitErr *exec.ExitError
+		if errors.As(err, &exitErr) && exitErr.ExitCode() == 1 {
+			return false, nil
+		}
+		return false, fmt.Errorf("inspect Git filter configuration: %w", err)
 	}
 	return len(output) != 0, nil
 }
