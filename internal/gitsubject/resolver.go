@@ -343,7 +343,11 @@ func runGit(ctx context.Context, worktree string, args ...string) ([]byte, error
 	)
 	commandArgs = append(commandArgs, args...)
 
-	cmd := exec.CommandContext(ctx, "git", commandArgs...)
+	gitExecutable, err := trustedGitExecutable()
+	if err != nil {
+		return nil, err
+	}
+	cmd := exec.CommandContext(ctx, gitExecutable, commandArgs...)
 	cmd.Env = sanitizedGitEnvironment(os.Environ())
 	output, err := cmd.Output()
 	if err == nil {
