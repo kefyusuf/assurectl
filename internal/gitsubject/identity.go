@@ -10,6 +10,12 @@ import (
 
 const changeSetAlgorithm = "assurectl.git-change-set/v0"
 
+var crossTransportHostedProviders = map[string]struct{}{
+	"bitbucket.org": {},
+	"github.com":    {},
+	"gitlab.com":    {},
+}
+
 func canonicalizeRepositoryURI(raw string) (string, error) {
 	if raw == "" {
 		return "", fmt.Errorf("repository URI is empty")
@@ -30,7 +36,7 @@ func canonicalizeRepositoryURI(raw string) (string, error) {
 
 	parsed, err := url.Parse(raw)
 	if err != nil {
-		return "", fmt.Errorf("parse repository URI: %w", err)
+		return "", fmt.Errorf("repository URI is malformed")
 	}
 	if parsed.RawQuery != "" || parsed.Fragment != "" {
 		return "", fmt.Errorf("repository URI query and fragment are unsupported")
@@ -39,7 +45,8 @@ func canonicalizeRepositoryURI(raw string) (string, error) {
 		return "", fmt.Errorf("repository URI ports are unsupported")
 	}
 
-	switch strings.ToLower(parsed.Scheme) {
+	scheme := strings.ToLower(parsed.Scheme)
+	switch scheme {
 	case "http", "https":
 		if parsed.User != nil {
 			return "", fmt.Errorf("repository URI credentials are unsupported")
@@ -62,7 +69,24 @@ func canonicalizeRepositoryURI(raw string) (string, error) {
 	if host == "" {
 		return "", fmt.Errorf("repository URI host is empty")
 	}
-	return canonicalHostPath(host, parsed.Path)
+	canonical, err := canonicalHostPath(host, parsed.Path)
+	if err != nil {
+		return "", err
+	}
+	if crossTransportIdentityAllowed(host) {
+		return canonical, nil
+	}
+
+	switch scheme {
+	case "http":
+		return "http://" + canonical, nil
+	case "https":
+		return "https://" + canonical, nil
+	case "ssh":
+		return "ssh://git@" + canonical, nil
+	default:
+		return "", fmt.Errorf("repository URI scheme %q is unsupported", parsed.Scheme)
+	}
 }
 
 func canonicalizeSCPLikeURI(raw string) (string, error) {
@@ -94,7 +118,19 @@ func canonicalizeSCPLikeURI(raw string) (string, error) {
 	if strings.HasPrefix(path, "/") {
 		return "", fmt.Errorf("SCP-like repository URI absolute paths are unsupported")
 	}
-	return canonicalHostPath(host, path)
+	canonical, err := canonicalHostPath(host, path)
+	if err != nil {
+		return "", err
+	}
+	if crossTransportIdentityAllowed(host) {
+		return canonical, nil
+	}
+	return "ssh+scp://git@" + canonical, nil
+}
+
+func crossTransportIdentityAllowed(host string) bool {
+	_, ok := crossTransportHostedProviders[strings.ToLower(host)]
+	return ok
 }
 
 func canonicalHostPath(host, rawPath string) (string, error) {
