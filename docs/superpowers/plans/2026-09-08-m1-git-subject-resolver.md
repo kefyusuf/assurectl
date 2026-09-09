@@ -7,33 +7,30 @@
 
 ## Goal
 
-Implement the smallest M1 component that can resolve an immutable Git subject for later advisory verification. The resolver produces a canonical repository identity, exact base/head commit object IDs, the versioned `assurectl.git-change-set/v0` digest, and advisory workspace state.
+Implement the smallest M1 component that resolves a revision-bound local Git subject for later advisory verification. The resolver returns canonical repository identity, exact base/head commit object IDs, the versioned `assurectl.git-change-set/v0` digest, and advisory workspace state.
 
-This plan does **not** add `assurectl verify`, contract or policy loading, evidence loading/validation, receipt construction, semantic receipt acceptance, recursive submodule assurance, CI trust, or authoritative completion.
+This slice does **not** add `assurectl verify`, contract/policy/evidence loaders, receipt construction or acceptance, recursive submodule assurance, CI trust, signing, or authoritative completion.
 
-## Accepted invariants
+## Final invariants
 
-The implementation follows ADR-0003 and the consolidated foundation design:
+The implementation follows ADR-0003 and fails closed on ambiguous local Git state:
 
 - subject identity is repository + exact base revision + exact head revision + versioned change-set digest;
-- branch names and pull-request numbers are not immutable subject identity;
-- repository identity resolves in precedence order: explicit caller URI, normalized local `origin`, local advisory fallback;
-- only explicitly supported SSH/HTTP(S) forms are canonicalized; SSH requires the explicit `git` username, while omitted/other usernames, ports, credentials, percent-encoding, surrounding whitespace, absolute SCP-like remote paths, and ambiguous paths fail closed;
-- the discovered worktree root must resolve back to the same absolute Git directory as the caller path, so repository-local `core.worktree` cannot redirect resolution into another checkout;
-- dirty worktrees are detectable and remain advisory-only; `assume-unchanged`, `skip-worktree`, executable-bit changes hidden by repository-local `core.filemode`, and unverified gitlink/submodule entries cannot produce a clean claim;
-- recursive submodule cleanliness is not claimed in this slice;
-- no network fetch occurs during subject resolution, including partial-clone lazy fetching;
-- replacement refs are disabled during revision resolution;
-- repository-controlled fsmonitor hooks are disabled for all resolver Git subprocesses;
-- system/global Git configuration, terminal credential prompting, Git trace redirection, Git exec/SSH overrides, and repository/object/index/worktree environment redirection cannot influence resolver subprocesses;
-- Git commands use fixed argument vectors and never pass caller input through a shell;
-- ambiguous or malformed repository identity and unresolved revisions fail closed.
+- caller path must be inside the discovered worktree and both must resolve to the same absolute Git-directory identity;
+- `BaseRef`/`HeadRef` inputs are limited to `HEAD`, full 40/64-character object IDs, or fully-qualified `refs/...` names; ambiguous short refs are rejected;
+- the resolved checkout `HEAD` must equal the resolved subject head before the worktree can be considered clean;
+- dirty worktrees remain advisory-only; `assume-unchanged`, `skip-worktree`, gitlinks, executable-bit changes, symlink-type changes, weakened stat-cache configuration, and external clean/process filters cannot produce a clean claim;
+- repository-controlled fsmonitor and conversion-filter commands are not executed as part of a clean claim;
+- no explicit or partial-clone lazy fetch is permitted, and replacement refs are disabled;
+- Git environment/config redirection is stripped, including mixed-case variants, before subprocess execution;
+- resolver Git subprocesses use a small absolute-path executable allowlist instead of resolving a bare `git` through caller-controlled `PATH`;
+- malformed repository identity errors do not echo credential-bearing parser input;
+- repository URI normalization preserves identity-significant transport/path distinctions unless the host is explicitly allowlisted for provider-level cross-transport equivalence;
+- no caller-controlled value is passed through a shell.
 
 ## Package boundary
 
-Add `internal/gitsubject` only.
-
-Implemented API:
+Only `internal/gitsubject` is introduced.
 
 ```go
 type Options struct {
@@ -55,21 +52,16 @@ No public Go API is introduced.
 
 ## Resolution algorithm
 
-1. Resolve the absolute Git directory from the caller path, then resolve the worktree root using local Git metadata. Parse Git path output by removing only Git's record terminator; preserve significant spaces/tabs and reject unexpected record separators.
-2. Normalize the discovered root and require its absolute Git-directory identity to equal the caller path's Git-directory identity. A `core.worktree` redirect into another repository/checkout fails closed.
-3. Reject non-worktree/bare-repository inputs.
-4. Resolve `BaseRef` and `HeadRef` to exact commit object IDs with a fixed `git rev-parse --verify --end-of-options <ref>^{commit}` argument vector while replacement refs and lazy fetching are disabled.
-5. Validate resolved object IDs as lowercase 40- or 64-character hexadecimal values.
-6. Resolve repository identity:
-   - use explicit `RepositoryURI` when supplied;
-   - otherwise read only repository-local `remote.origin.url` values;
-   - normalize only the supported SSH/HTTP(S) forms;
-   - reject absolute SCP-like remote paths rather than collapsing them with relative remote paths;
-   - fail closed when multiple distinct origin identities are ambiguous;
-   - never include a rejected raw origin value in an error message;
-   - if no origin exists, derive a non-path-revealing local advisory identifier from the normalized worktree root.
-7. Inspect index flags and modes before porcelain status. Any `assume-unchanged` entry, `skip-worktree` entry, or gitlink mode `160000` reports `Dirty=true` conservatively. Force `core.filemode=true` for resolver Git subprocesses so repository-local configuration cannot hide executable-bit changes. This avoids claiming nested submodule cleanliness that M1.1 does not verify while preserving fail-closed worktree mode checks.
-8. Compute:
+1. Normalize the caller path and resolve its absolute Git directory.
+2. Resolve `--show-toplevel`, preserve significant filesystem whitespace, normalize symlinks, require the caller path to remain inside that root, and require caller/root Git-directory identity equality.
+3. Reject bare/non-worktree inputs.
+4. Accept only canonical ref inputs (`HEAD`, full object ID, or fully-qualified `refs/...`) and resolve base/head to exact commit object IDs with replacement refs and lazy fetching disabled.
+5. Resolve repository identity using explicit URI > local `origin` > local advisory fallback.
+6. Canonicalize supported HTTP(S)/SSH inputs without collapsing identity-significant self-hosted transport/path semantics.
+7. Require checkout `HEAD == resolved head` for a clean claim.
+8. Before porcelain status, conservatively report dirty for external clean/process filters, hidden index flags, gitlinks, or other unverified state.
+9. Run status with `core.fsmonitor=false`, `core.filemode=true`, `core.symlinks=true`, `core.trustctime=true`, `core.checkStat=default`, and `core.ignoreStat=false`.
+10. Compute ADR-0003 v0 digest:
 
 ```text
 sha256(
@@ -80,121 +72,53 @@ sha256(
 )
 ```
 
-9. Return `domain.Subject` plus `Dirty` and `LocalOnly` advisory metadata.
+11. Return `domain.Subject` plus `Dirty` and `LocalOnly` advisory metadata.
 
 ## Repository URI normalization
 
-M1.1 supports a deliberately small, deterministic identity surface:
+M1.1 deliberately supports a narrow identity surface:
 
-- SCP-like SSH: relative `git@host:owner/repo.git` only; a leading slash after the colon is rejected because it denotes an identity-significant absolute remote path;
-- SSH URL: `ssh://git@host/...` only; an omitted username would inherit the operating-system login and is therefore identity-significant and rejected;
-- `https://host/...` and `http://host/...` as identity inputs;
-- canonical output is `host/path` with lowercase host and a trailing `.git` removed;
-- ports are intentionally unsupported in this slice rather than silently discarded;
-- credentials, passwords, query strings, fragments, percent-encoding, surrounding whitespace, empty repository paths, dot segments, traversal segments, and malformed hosts/paths are rejected;
-- explicit caller identity uses the same canonicalization as origin identity;
-- local fallback is `local://sha256/<hex-digest>` and sets `LocalOnly=true`.
+- HTTP(S): `http://host/path` and `https://host/path`;
+- SSH URL: explicit `ssh://git@host/path` only;
+- SCP-like SSH: relative `git@host:path` only; absolute SCP-like paths are rejected;
+- omitted or non-`git` SSH usernames, explicit ports, credentials/passwords, query/fragment data, percent encoding, surrounding whitespace, empty/dot/traversal segments, and malformed hosts/paths are rejected;
+- parse failures return a generic error and do not echo malformed credential-bearing input;
+- GitHub, GitLab, and Bitbucket public hosts are explicitly allowlisted to normalize supported transport forms to common `host/path` identity;
+- generic/self-hosted hosts preserve transport/path semantics, e.g. SCP-like and `ssh://` forms do not collapse to the same identity;
+- local fallback is `local://sha256/<digest>` and sets `LocalOnly=true`.
 
-The resolver does not contact the remote and does not infer hosting-provider trust.
+The resolver does not contact the remote and does not infer remote authority or trust.
 
 ## Git subprocess isolation
 
-Every resolver Git subprocess is direct `exec.CommandContext` execution; there is no shell.
+Every resolver Git subprocess is direct `exec.CommandContext` execution with a trusted absolute executable path selected from a small OS-specific allowlist. Caller `PATH` cannot select the resolver's Git binary.
 
-The subprocess boundary is intentionally narrower than the caller environment:
+The child environment/config boundary additionally:
 
-- repository/object/index/worktree redirection variables are removed;
-- `GIT_CONFIG_GLOBAL` is pinned to `os.DevNull` and `GIT_CONFIG_NOSYSTEM=1` disables system configuration;
-- `GIT_TERMINAL_PROMPT=0` prevents interactive credential prompts;
-- `GIT_NO_LAZY_FETCH=1` prevents on-demand partial-clone fetches;
-- `GIT_NO_REPLACE_OBJECTS=1` disables replacement refs;
-- `GIT_OPTIONAL_LOCKS=0` keeps read-style inspection from optional index writes;
-- `GIT_TRACE*`, `GIT_EXEC_PATH`, `GIT_NAMESPACE`, Git/SSH askpass and SSH command overrides are removed;
-- `core.fsmonitor=false` is injected on each invocation so repository-local fsmonitor commands cannot execute during status/index inspection;
-- `core.filemode=true` is injected so repository-local `core.filemode=false` cannot suppress executable-bit dirty state;
-- worktree discovery is bound back to the caller's Git-directory identity before revision, origin, or dirty-state resolution proceeds.
+- removes repository/object/index/worktree redirection variables;
+- removes Git config injection, exec-path, namespace, trace, askpass, and SSH-command overrides case-insensitively;
+- pins `GIT_CONFIG_GLOBAL` to `os.DevNull` and `GIT_CONFIG_NOSYSTEM=1`;
+- pins `GIT_TERMINAL_PROMPT=0`, `GIT_NO_LAZY_FETCH=1`, `GIT_NO_REPLACE_OBJECTS=1`, and `GIT_OPTIONAL_LOCKS=0`;
+- injects `core.fsmonitor=false`, `core.filemode=true`, `core.symlinks=true`, `core.trustctime=true`, `core.checkStat=default`, and `core.ignoreStat=false`;
+- detects configured `filter.*.clean` / `filter.*.process` entries and reports the workspace conservatively dirty before `git status` can invoke them.
 
-Repository-local `remote.origin.url` remains deliberately readable because it is an identity input; arbitrary trust is never inferred from it.
+Repository-local `remote.origin.url` remains readable solely as an identity input; it does not establish authority.
 
-## TDD sequence
+## TDD and review evidence
 
-### RED 1 — pure identity and digest contract
+The PR retains the full commit-by-commit RED/GREEN history. Major checkpoints include:
 
-Tests were added before implementation for:
+- RED/GREEN foundation for URI/digest helpers and `Resolve`;
+- review hardening for credential leakage, fsmonitor, lazy fetch, replacement refs, trace/config redirection, and hidden index state;
+- RED `2f0dc3b...` / GREEN `588f899...` for implicit SSH user and `skip-worktree`;
+- RED `6b94adf...` / GREEN `5fd8502...` for checkout redirection;
+- RED `148da7d...` / GREEN `15a80d9...` for conservative gitlink handling;
+- RED `ad4dda0...` / GREEN `9c5644f...` for SCP absolute-path and executable-bit behavior;
+- RED `9a7ac10...`, CI #85, proving repository clean-filter execution; GREEN `a024a35...` prevents it;
+- RED `b80af538...`, CI #87, reproducing caller/root containment, checkout-head mismatch, ambiguous short refs, PATH hijack, self-hosted SSH identity collapse, malformed-URI credential leakage, symlink false-clean, and mixed-case environment bypasses;
+- final production hardening in `c1611c5...`, `1ce181b...`, `cd98f7f...`, and `f901d83...`.
 
-- HTTPS and SCP/SSH forms normalizing to the same identity;
-- lowercase host / preserved repository path semantics;
-- `.git` removal;
-- rejection of credentials, query/fragment, dot/traversal, malformed or empty paths;
-- deterministic `assurectl.git-change-set/v0` digest with an independently computed expected value;
-- rejection of malformed object IDs.
-
-### GREEN 1 — pure helpers
-
-Implemented only the URI/OID/digest logic required by RED 1.
-
-### RED 2 — temporary Git repository resolution
-
-Integration tests were added using local temporary repositories for:
-
-- exact base/head commit resolution;
-- explicit URI precedence over origin;
-- origin fallback;
-- no-origin local advisory fallback without leaking the worktree path;
-- clean versus dirty/untracked worktree state;
-- non-repository and bare-repository failure;
-- unresolved/invalid refs failing closed;
-- repeatability for identical inputs.
-
-### GREEN 2 — resolver
-
-Implemented `Resolve` using fixed Git argument vectors without shell or network operations.
-
-### RED 3 — initial review trust-boundary regressions
-
-After Codex/CodeRabbit review, tests were added before fixes for:
-
-- surrounding-whitespace repository identity collisions;
-- identity-significant SSH username collisions;
-- credential disclosure in rejected origin errors;
-- inherited system/global Git configuration and terminal prompting;
-- inherited Git trace/exec/SSH redirection;
-- partial-clone lazy fetching;
-- replacement-ref object masquerading;
-- repository-controlled fsmonitor execution;
-- `assume-unchanged` edits being hidden from dirty-state detection;
-- significant trailing whitespace being stripped from the discovered worktree root.
-
-The valid RED checkpoint reached `go test` with all intended review regressions failing before their production fixes.
-
-### GREEN 3 — fail-closed Git trust boundary
-
-The review regressions were fixed in small commits and re-run through the Go 1.26.x / 1.27.x CI matrix. Test-only process launches were also changed to `exec.CommandContext(t.Context(), ...)` per lint feedback.
-
-### RED 4 — exact-head CodeRabbit identity and hidden-index findings
-
-Commit `2f0dc3b244b902c3ac81593dc7ed10b35248bc04` added tests proving two exact-head findings:
-
-- `ssh://host/path` must not collapse to the same identity as explicit `ssh://git@host/path`;
-- a modified `skip-worktree` entry must not produce `Dirty=false`.
-
-CI run `34282307380` failed at exactly those two tests after formatting and vet passed.
-
-### GREEN 4 — explicit SSH identity and skip-worktree safety
-
-Commit `6e274ab30983b34c7e4e8db25199ce78b0a380a0` fixed the SSH case; CI run `34282528253` then left only the skip-worktree regression failing. Commit `588f899924887488addc179309702b3eb11bb3d9` fixed `S`-tag handling, and CI run `34282754277` passed the full matrix.
-
-### RED/GREEN 5 — caller checkout binding
-
-Self-review reproduced a repository-local `core.worktree` redirect that could make `--show-toplevel` point at a different repository checkout. Test-only commit `6b94adf9764507ae08d18d823b7b6c691c20ab65` failed in CI run `34283606691` on that exact behavior. Commit `5fd85029ecb874f66a0ee4a08fab8a07fddb977c` binds caller/discovered Git-directory identity; CI run `34283831057` passed.
-
-### RED/GREEN 6 — nested submodule claim boundary
-
-Self-review also reproduced a false-clean nested state: a submodule can contain hidden worktree/index state that parent porcelain status does not establish. Test-only commit `148da7d5905f321ea94ae85aca18fd8fada1db1e` failed in CI run `34284087666` because a gitlink was still reported clean. Commit `15a80d945bae52fec8a8ec15e385d30acc70f119` treats gitlink mode `160000` as conservatively dirty; CI run `34284270829` passed the full matrix. Recursive submodule assurance remains explicitly out of scope.
-
-### RED/GREEN 7 — SCP absolute-path and executable-mode binding
-
-Review-thread cleanup exposed two still-valid findings. Test-only commit `ad4dda08e77475b8340bd886cdb88ba9e4d70a51` added regressions for an absolute SCP-like remote path and an executable-bit change hidden by `core.filemode=false`; CI run `34285349635` failed at exactly those two tests after formatting and vet passed. Commit `c9234e0466e9f3a18fa383339d0a0ab0885eee7e` rejected absolute SCP-like paths; CI run `34285515247` then left only the filemode regression failing. Commit `9c5644fed14accbd957cf2536b22fea9117a2ca8` pins `core.filemode=true`, and CI run `34285672694` passed the full Go 1.26.x / 1.27.x matrix.
+CI #91 / `34305521697` on `f901d83a2105029d3927ddf1c99ab52631aa934d` passed formatting, vet, race tests, coverage, and CLI build on both Go 1.26.x and 1.27.x before this documentation-only alignment commit.
 
 ## Verification
 
@@ -208,21 +132,21 @@ go test -race ./...
 go build -trimpath -o /tmp/assurectl ./cmd/assurectl
 ```
 
-Exact-head SHA and GitHub Actions evidence are recorded in PR #2 and must be refreshed after any branch change. GitHub Actions remains the compatibility authority for the committed Go 1.26.x / 1.27.x matrix.
+GitHub Actions is the compatibility authority for the committed Go 1.26.x / 1.27.x matrix. Any final documentation-only head must still pass the exact-head workflow before merge.
 
 ## Exit criteria
 
 This slice is complete only when:
 
-- the resolver returns exact immutable Git subject data for local repositories;
-- repository identity precedence is deterministic and tested;
-- absolute and relative SCP-like remote paths cannot collapse to one identity;
-- the discovered worktree cannot be redirected to a different Git-directory identity;
-- dirty and local-only states are explicit rather than silently promoted;
-- hidden index state, executable-bit changes, and unverified gitlinks cannot produce a clean claim;
-- malformed/ambiguous inputs fail closed without leaking raw credential-bearing origins;
-- no remote fetch, repository-controlled fsmonitor command, inherited Git trace write, or shell execution path is introduced;
+- exact repository/base/head/change-set identity is deterministic;
+- caller checkout cannot be rebound by repository configuration;
+- a clean result is bound to the resolved head;
+- ambiguous refs and repository identities fail closed;
+- hidden index state, executable/symlink mode changes, stat-cache weakening, gitlinks, and external clean filters cannot produce a clean claim;
+- malformed identity errors do not expose raw credential-bearing input;
+- caller `PATH` cannot substitute the Git executable;
+- no remote fetch, repository-controlled command execution, inherited Git trace write, or shell execution path remains in this slice;
 - exact-head CI is green;
-- exact-head review findings are addressed and review threads are resolved.
+- exact-head Codex/CodeRabbit findings are addressed and all review threads are resolved.
 
-Receipt semantics, recursive submodule assurance, and the `verify` CLI remain out of scope for this PR.
+Receipt semantics, recursive submodule assurance, and the `verify` CLI remain out of scope for PR #2.
