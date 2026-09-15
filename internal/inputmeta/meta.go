@@ -16,6 +16,10 @@ type TrustStatus string
 
 const TrustStatusUntrusted TrustStatus = "UNTRUSTED"
 
+type AuthorityBasis string
+
+const AuthorityBasisAdvisoryWorkspace AuthorityBasis = "ADVISORY_WORKSPACE"
+
 func SHA256(data []byte) Digest {
 	sum := sha256.Sum256(data)
 	return Digest{
