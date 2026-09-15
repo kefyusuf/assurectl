@@ -4,14 +4,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"os"
-	"path/filepath"
 	"regexp"
 	"strings"
 	"unicode/utf8"
 
 	"github.com/kefyusuf/assurectl/internal/domain"
 	"github.com/kefyusuf/assurectl/internal/inputmeta"
+	"github.com/kefyusuf/assurectl/internal/localinput"
 	"github.com/kefyusuf/assurectl/internal/strictjson"
 )
 
@@ -47,8 +46,7 @@ func LoadLocal(root string) (Loaded, error) {
 		return Loaded{}, errors.New("load contract: workspace root is empty")
 	}
 
-	path := filepath.Join(root, filepath.FromSlash(localContractPath))
-	data, err := os.ReadFile(path)
+	data, err := localinput.ReadWorkspaceFile(root, localContractPath)
 	if err != nil {
 		return Loaded{}, fmt.Errorf("load contract %s: %w", localContractPath, err)
 	}
