@@ -49,7 +49,7 @@ func TestLoadLocalReturnsTypedAdvisoryPolicyAndCanonicalDigest(t *testing.T) {
 	if len(requirement.AllowedProducerTypes) != 1 || requirement.AllowedProducerTypes[0] != "local-user" {
 		t.Fatalf("AllowedProducerTypes = %#v", requirement.AllowedProducerTypes)
 	}
-	if requirement.MaxAgeSeconds == nil || *requirement.MaxAgeSeconds != 3600 {
+	if requirement.MaxAgeSeconds == nil || requirement.MaxAgeSeconds.String() != "3600" {
 		t.Fatalf("MaxAgeSeconds = %#v", requirement.MaxAgeSeconds)
 	}
 	if loaded.Source != "workspace:.assurectl/policy.json" {
