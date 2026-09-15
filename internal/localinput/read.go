@@ -9,6 +9,7 @@ import (
 	"strings"
 )
 
+// MaxWorkspaceInputBytes bounds advisory configuration reads before parsing.
 const MaxWorkspaceInputBytes int64 = 1 << 20
 
 func ReadWorkspaceFile(root, relativePath string) ([]byte, error) {
