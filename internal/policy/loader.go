@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math/big"
 	"regexp"
 	"strings"
 	"unicode/utf8"
@@ -27,7 +28,7 @@ type Requirement struct {
 	EvidenceType         string   `json:"evidence_type"`
 	Waivable             bool     `json:"waivable"`
 	AllowedProducerTypes []string `json:"allowed_producer_types"`
-	MaxAgeSeconds        *uint64  `json:"max_age_seconds,omitempty"`
+	MaxAgeSeconds        *big.Int `json:"max_age_seconds,omitempty"`
 }
 
 type Policy struct {
@@ -137,19 +138,20 @@ func requiredBool(raw json.RawMessage) (bool, error) {
 	return value, nil
 }
 
-func optionalNonNegativeInteger(raw json.RawMessage) (*uint64, error) {
+func optionalNonNegativeInteger(raw json.RawMessage) (*big.Int, error) {
 	if len(raw) == 0 {
 		return nil, nil
 	}
-	if bytes.Equal(bytes.TrimSpace(raw), []byte("null")) {
+	trimmed := bytes.TrimSpace(raw)
+	if bytes.Equal(trimmed, []byte("null")) {
 		return nil, errors.New("must be a non-negative integer")
 	}
 
-	var value uint64
-	if err := json.Unmarshal(raw, &value); err != nil {
+	value, ok := new(big.Rat).SetString(string(trimmed))
+	if !ok || value.Sign() < 0 || !value.IsInt() {
 		return nil, errors.New("must be a non-negative integer")
 	}
-	return &value, nil
+	return new(big.Int).Set(value.Num()), nil
 }
 
 func validate(value Policy) error {
