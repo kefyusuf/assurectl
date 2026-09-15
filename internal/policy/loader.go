@@ -5,13 +5,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"os"
-	"path/filepath"
 	"regexp"
 	"strings"
 	"unicode/utf8"
 
 	"github.com/kefyusuf/assurectl/internal/inputmeta"
+	"github.com/kefyusuf/assurectl/internal/localinput"
 	"github.com/kefyusuf/assurectl/internal/strictjson"
 )
 
@@ -62,8 +61,7 @@ func LoadLocal(root string) (Loaded, error) {
 		return Loaded{}, errors.New("load policy: workspace root is empty")
 	}
 
-	path := filepath.Join(root, filepath.FromSlash(localPolicyPath))
-	data, err := os.ReadFile(path)
+	data, err := localinput.ReadWorkspaceFile(root, localPolicyPath)
 	if err != nil {
 		return Loaded{}, fmt.Errorf("load policy %s: %w", localPolicyPath, err)
 	}
