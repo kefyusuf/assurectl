@@ -176,11 +176,13 @@ git commit -m "refactor: expose evidence input safety seams"
 - Produces internal: `func decodeEnvelope(data []byte) (decodedEnvelope, error)`
 - Produces internal: `decodedEnvelope{Envelope Envelope, StartedAt time.Time, FinishedAt time.Time, Digest inputmeta.Digest}`
 
-Use pointers for optional fields whose explicit invalid presence must remain distinguishable from omission:
+The normalized typed model uses pointers for optional values:
 - `Producer.Workflow *string`
 - `Producer.WorkflowRevision *string`
 - `Invocation.EnvironmentDigest *inputmeta.Digest`
 - `Outcome.ExitCode *big.Int`
+
+However, pointers alone do **not** distinguish an omitted JSON field from an explicit `null`. Therefore strict decoding must first target private raw DTOs whose optional fields are `json.RawMessage`, then normalize them into the typed pointers only after presence/type validation. For optional nested objects such as `environment_digest`, run `strictjson.Decode` again on the raw object so duplicate/unknown nested keys remain fail-closed.
 
 - [ ] **Step 1: Write RED tests for one valid envelope and canonical digest**
 
@@ -203,7 +205,7 @@ Expected: FAIL because the package/functions do not exist.
 
 - [ ] **Step 3: Implement the typed model and strict decode skeleton**
 
-Implement the exact v0 field structure and `decodeEnvelope`. Decode through `strictjson.Decode`, validate `schema_version`, then compute envelope digest only after all intrinsic validation in this task succeeds.
+Implement the exact v0 typed field structure plus private raw DTOs. Decode the top-level document through `strictjson.Decode` into the raw DTO, normalize presence-sensitive optional `json.RawMessage` fields into the typed model, validate `schema_version`, then compute envelope digest only after all intrinsic validation in this task succeeds.
 
 Do not add filesystem, subject, policy, trust, or final evidence-state behavior.
 
@@ -227,8 +229,11 @@ Add `TestDecodeEnvelopeRejectsMalformedV0Input` covering:
 - impossible timestamp;
 - `finished_at < started_at`;
 - explicitly empty `producer.workflow`;
+- explicit `null` for `producer.workflow`;
 - explicitly empty `producer.workflow_revision`;
-- malformed optional environment digest.
+- explicit `null` for `producer.workflow_revision`;
+- malformed optional environment digest;
+- explicit `null` for `invocation.environment_digest`.
 
 - [ ] **Step 6: Observe RED for semantic validation**
 
@@ -396,6 +401,7 @@ git commit -m "feat: discover local evidence deterministically"
   - `type SubjectBinding string`
   - `const SubjectBindingExact SubjectBinding = "EXACT"`
   - `const SubjectBindingOtherRevision SubjectBinding = "OTHER_REVISION"`
+- Produces internal: `func validateResolvedSubject(resolved domain.Subject) error`
 - Produces internal: `func bindSubject(evidenceSubject Subject, resolved domain.Subject) (SubjectBinding, error)`
 
 - [ ] **Step 1: Write RED binding tests**
@@ -408,12 +414,12 @@ Add `TestBindSubject` cases:
 
 - [ ] **Step 2: Add Review Focus RED tests for malformed caller subject**
 
-Add cases where `domain.Subject` is manually constructed with:
+Add `TestValidateResolvedSubject` cases where `domain.Subject` is manually constructed with:
 - malformed/non-canonical repository URI;
 - empty repository URI;
 - invalid head revision.
 
-Expected: fail closed before reporting exact/other-revision.
+Expected: fail closed before any envelope binding is attempted. Also keep a `bindSubject` regression proving it calls the same validation rather than bypassing it.
 
 For repository URI, canonicalize the caller value and require the canonicalized value to equal the supplied resolved value; the evidence package must not silently “repair” a supposedly resolved subject.
 
@@ -429,7 +435,7 @@ Expected: FAIL because binding types/functions do not exist.
 
 - [ ] **Step 4: Implement subject binding only**
 
-Implement repository canonical comparison and revision comparison. Reuse the same 40/64 lowercase object-ID grammar used by envelope validation for the resolved head.
+Implement `validateResolvedSubject` plus repository canonical comparison and revision comparison. Reuse the same 40/64 lowercase object-ID grammar used by envelope validation for the resolved head. `bindSubject` must call `validateResolvedSubject`.
 
 Do not inspect base revision, change-set digest, policy, producer, or wall clock in this helper.
 
@@ -616,7 +622,7 @@ Expected: FAIL because `LoadLocal` / `Loaded` composition is incomplete.
 - [ ] **Step 3: Implement minimal `LoadLocal` composition**
 
 Order:
-1. validate/use the supplied resolved subject through binding;
+1. call `validateResolvedSubject(subject)` even when the evidence directory is absent/empty;
 2. discover candidates;
 3. strict-decode each envelope;
 4. reject duplicate evidence IDs set-wide;
@@ -633,7 +639,8 @@ Add:
 - two valid files with same envelope `id` → error naming duplicate ID;
 - first file valid + later artifact digest mismatch → `LoadLocal` returns error and no accepted slice;
 - repository mismatch in any member → complete call fails;
-- malformed member among valid siblings → complete call fails.
+- malformed member among valid siblings → complete call fails;
+- malformed caller `domain.Subject` + missing evidence directory → error rather than a silently successful empty set.
 
 - [ ] **Step 5: Run fail-closed set tests and observe RED**
 
