@@ -119,7 +119,7 @@ func TestDecodeEnvelopeRejectsMalformedV0Input(t *testing.T) {
 		{name: "case alias field", json: replace("\"id\": \"ev-unit-tests-001\"", "\"Id\": \"ev-unit-tests-001\"")},
 		{name: "invalid evidence id", json: replace("\"id\": \"ev-unit-tests-001\"", "\"id\": \"../bad\"")},
 		{name: "empty evidence type", json: replace("\"type\": \"test-result\"", "\"type\": \"\"")},
-		{name: "overlong producer identity", json: replace("\"identity\": \"example-developer\"", "\"identity\": \"" + strings.Repeat("x", 1025) + "\"")},
+		{name: "overlong producer identity", json: replace("\"identity\": \"example-developer\"", "\"identity\": \""+strings.Repeat("x", 1025)+"\"")},
 		{name: "invalid subject revision", json: replace("\"revision\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"", "\"revision\": \"ABC\"")},
 		{name: "invalid environment digest algorithm", json: replace("\"algorithm\": \"sha256\"", "\"algorithm\": \"sha512\"")},
 		{name: "invalid artifact digest hex", json: replace("\"value\": \"eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\"", "\"value\": \"xyz\"")},
