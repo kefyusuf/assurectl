@@ -48,7 +48,7 @@
 - `internal/gitsubject/identity_test.go` — pin exported seam to existing canonicalization behavior.
 - `internal/localinput/read.go` — extract/open a reusable workspace-bounded regular-file primitive; keep `ReadWorkspaceFile` behavior and 1 MiB limit unchanged.
 - Create `internal/localinput/read_test.go` if needed for the new primitive; do not move unrelated tests.
-- `docs/superpowers/specs/2026-09-29-m1-evidence-ingestion-design.md` — status only, from draft review to approved-for-implementation after plan acceptance; no semantic rewrite.
+- `docs/superpowers/specs/2026-09-29-m1-evidence-ingestion-design.md` — status only after verified implementation if appropriate; no semantic rewrite during implementation.
 
 ## Review Focus
 
@@ -76,8 +76,12 @@
 - [ ] **Step 1: Write failing tests for the exported repository canonicalization seam**
 
 In `internal/gitsubject/identity_test.go`, add a test that calls `CanonicalizeRepositoryIdentity` directly and proves at least:
-- `https://github.com/acme/repo.git` → `github.com/acme/repo`;
-- `git@github.com:acme/repo.git` → the same identity;
+- raw `https://github.com/acme/repo.git` → `github.com/acme/repo`;
+- raw `git@github.com:acme/repo.git` → the same identity;
+- already-canonical hosted `github.com/acme/repo` round-trips unchanged;
+- canonical self-hosted `https://git.example.com/proj/repo` round-trips unchanged;
+- canonical self-hosted `ssh://git@git.example.com/proj/repo` round-trips unchanged;
+- resolver-produced canonical SCP identity `ssh+scp://git@git.example.com/proj/repo` round-trips unchanged;
 - a valid resolver-generated `local://sha256/<64 lowercase hex>` identity is preserved exactly;
 - malformed `local://` identities are rejected;
 - malformed credential/percent-encoded remote inputs remain rejected exactly as the existing private URI helper rejects them.
@@ -89,7 +93,7 @@ Also retain/add a regression that `Resolve`'s explicit repository-URI path does 
 Run:
 
 ```bash
-go test ./internal/gitsubject -run 'TestCanonicalizeRepositoryURI'
+go test ./internal/gitsubject -run 'TestCanonicalizeRepositoryIdentity|TestCanonicalizeRepositoryURI'
 ```
 
 Expected: FAIL to compile because `CanonicalizeRepositoryIdentity` does not exist.
@@ -102,7 +106,7 @@ Add:
 func CanonicalizeRepositoryIdentity(raw string) (string, error)
 ```
 
-The function accepts the two identity forms the resolver can actually produce: an exact canonical `local://sha256/<64 lowercase hex>` value, or a remote identity normalized through the existing private URI canonicalizer. Keep `Resolve`'s explicit/origin input path on the existing private URI rules so this seam does not make `local://` a user-selectable remote URI. Do not introduce a new package, interface, provider registry, or alternate remote-normalization path.
+The function must accept both raw supported repository forms and the canonical identities the resolver itself can emit. Handle canonical `local://sha256/<64 lowercase hex>`, allowlisted hosted `host/path`, and canonical self-hosted outputs including `ssh+scp://git@...`; delegate ordinary raw HTTP/HTTPS/SSH/SCP inputs to the existing private URI canonicalizer. Keep `Resolve`'s explicit/origin input path on the existing private URI rules so this comparison seam does not make `local://` or `ssh+scp://` newly user-selectable origin syntax. Do not introduce a new package, interface, provider registry, or alternate identity model.
 
 - [ ] **Step 4: Run Git subject tests GREEN**
 
