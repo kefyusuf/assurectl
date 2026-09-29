@@ -217,9 +217,14 @@ Evidence envelopes provide:
 - repository URI;
 - one revision.
 
-Repository comparison must use the same canonicalization behavior as the Git subject resolver. That algorithm must not be copied into a second implementation.
+Repository comparison must use the same canonical identity behavior as the Git subject resolver. That algorithm must not be copied into a second implementation.
 
-A narrow reusable seam may be exposed from `internal/gitsubject` for repository URI canonicalization. This must not grow into a new identity framework or strategy hierarchy.
+The comparison seam must recognize both resolver identity forms:
+
+- canonical remote repository identities produced from supported HTTPS/SSH/SCP inputs;
+- the resolver-generated advisory fallback `local://sha256/<64 lowercase hex>` identity when no usable origin exists.
+
+A narrow reusable seam may be exposed from `internal/gitsubject` for canonical repository **identity** handling. This must not broaden the resolver's explicit/origin URI acceptance rules: a caller still cannot choose a self-invented `local://` value as an explicit remote URI. It must not grow into a new identity framework or strategy hierarchy.
 
 Subject outcomes are facts, not final evidence states:
 
