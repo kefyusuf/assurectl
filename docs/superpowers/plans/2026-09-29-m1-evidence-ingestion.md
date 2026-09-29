@@ -44,7 +44,7 @@
 
 ### Modify
 
-- `internal/gitsubject/identity.go` — expose the existing repository URI canonicalization through one narrow exported seam without changing normalization semantics.
+- `internal/gitsubject/identity.go` — expose one narrow canonical **repository identity** seam that preserves existing remote normalization and validates the resolver-generated `local://sha256/...` advisory identity without broadening explicit URI acceptance.
 - `internal/gitsubject/identity_test.go` — pin exported seam to existing canonicalization behavior.
 - `internal/localinput/read.go` — extract/open a reusable workspace-bounded regular-file primitive; keep `ReadWorkspaceFile` behavior and 1 MiB limit unchanged.
 - Create `internal/localinput/read_test.go` if needed for the new primitive; do not move unrelated tests.
@@ -69,16 +69,20 @@
 - Create: `internal/localinput/read_test.go`
 
 **Interfaces:**
-- Produces: `func gitsubject.CanonicalizeRepositoryURI(raw string) (string, error)`
+- Produces: `func gitsubject.CanonicalizeRepositoryIdentity(raw string) (string, error)`
 - Produces: `func localinput.OpenWorkspaceRegularFile(root, relativePath string) (*os.File, error)`
 - Preserves: `func localinput.ReadWorkspaceFile(root, relativePath string) ([]byte, error)`, including `MaxWorkspaceInputBytes == 1 << 20`
 
 - [ ] **Step 1: Write failing tests for the exported repository canonicalization seam**
 
-In `internal/gitsubject/identity_test.go`, add a test that calls `CanonicalizeRepositoryURI` directly and proves at least:
+In `internal/gitsubject/identity_test.go`, add a test that calls `CanonicalizeRepositoryIdentity` directly and proves at least:
 - `https://github.com/acme/repo.git` → `github.com/acme/repo`;
 - `git@github.com:acme/repo.git` → the same identity;
-- malformed credential/percent-encoded inputs remain rejected exactly as the existing private helper rejects them.
+- a valid resolver-generated `local://sha256/<64 lowercase hex>` identity is preserved exactly;
+- malformed `local://` identities are rejected;
+- malformed credential/percent-encoded remote inputs remain rejected exactly as the existing private URI helper rejects them.
+
+Also retain/add a regression that `Resolve`'s explicit repository-URI path does **not** begin accepting caller-supplied `local://` values.
 
 - [ ] **Step 2: Run the focused Git subject test and observe RED**
 
@@ -88,17 +92,17 @@ Run:
 go test ./internal/gitsubject -run 'TestCanonicalizeRepositoryURI'
 ```
 
-Expected: FAIL to compile because `CanonicalizeRepositoryURI` does not exist.
+Expected: FAIL to compile because `CanonicalizeRepositoryIdentity` does not exist.
 
 - [ ] **Step 3: Expose the existing canonicalizer without changing its rules**
 
 Add:
 
 ```go
-func CanonicalizeRepositoryURI(raw string) (string, error)
+func CanonicalizeRepositoryIdentity(raw string) (string, error)
 ```
 
-as a narrow wrapper over the existing implementation, or rename the existing function and update internal call sites. Do not introduce a new package, interface, provider registry, or alternate normalization path.
+The function accepts the two identity forms the resolver can actually produce: an exact canonical `local://sha256/<64 lowercase hex>` value, or a remote identity normalized through the existing private URI canonicalizer. Keep `Resolve`'s explicit/origin input path on the existing private URI rules so this seam does not make `local://` a user-selectable remote URI. Do not introduce a new package, interface, provider registry, or alternate remote-normalization path.
 
 - [ ] **Step 4: Run Git subject tests GREEN**
 
@@ -395,7 +399,7 @@ git commit -m "feat: discover local evidence deterministically"
 - Modify: `internal/evidence/model.go`
 
 **Interfaces:**
-- Consumes: `gitsubject.CanonicalizeRepositoryURI(raw string) (string, error)`
+- Consumes: `gitsubject.CanonicalizeRepositoryIdentity(raw string) (string, error)`
 - Consumes: `domain.Subject`
 - Produces:
   - `type SubjectBinding string`
@@ -408,6 +412,7 @@ git commit -m "feat: discover local evidence deterministically"
 
 Add `TestBindSubject` cases:
 - evidence HTTPS URI and resolved canonical GitHub identity normalize to the same repository + same head → `EXACT`;
+- matching valid `local://sha256/...` evidence/resolved identities + same head → `EXACT`;
 - same repository + different valid revision → `OTHER_REVISION`;
 - different repository → error;
 - malformed evidence repository URI → error.
