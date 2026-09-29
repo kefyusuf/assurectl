@@ -163,3 +163,85 @@ func TestDecodeEnvelopeAcceptsEqualInvocationTimestamps(t *testing.T) {
 		t.Fatalf("decodeEnvelope() error = %v", err)
 	}
 }
+
+
+func TestDecodeEnvelopeNormalizesJSONSchemaIntegerExitCode(t *testing.T) {
+	t.Parallel()
+
+	withExitCode := func(value string) string {
+		t.Helper()
+		return strings.Replace(validEnvelopeJSON, "\"exit_code\": 0", "\"exit_code\": "+value, 1)
+	}
+
+	tests := []struct {
+		name string
+		json string
+		want string
+	}{
+		{name: "plain integer", json: withExitCode("1000"), want: "1000"},
+		{name: "decimal integer", json: withExitCode("1000.0"), want: "1000"},
+		{name: "exponent integer", json: withExitCode("1e3"), want: "1000"},
+		{name: "negative integer", json: withExitCode("-1"), want: "-1"},
+		{name: "beyond int64", json: withExitCode("9223372036854775808"), want: "9223372036854775808"},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			got, err := decodeEnvelope([]byte(tt.json))
+			if err != nil {
+				t.Fatalf("decodeEnvelope() error = %v", err)
+			}
+			if got.Envelope.Outcome.ExitCode == nil || got.Envelope.Outcome.ExitCode.String() != tt.want {
+				t.Fatalf("ExitCode = %#v, want %s", got.Envelope.Outcome.ExitCode, tt.want)
+			}
+		})
+	}
+
+	t.Run("fractional number rejected", func(t *testing.T) {
+		t.Parallel()
+		if got, err := decodeEnvelope([]byte(withExitCode("1.5"))); err == nil {
+			t.Fatalf("decodeEnvelope() = %#v, want error", got)
+		}
+	})
+
+	t.Run("explicit null rejected", func(t *testing.T) {
+		t.Parallel()
+		if got, err := decodeEnvelope([]byte(withExitCode("null"))); err == nil {
+			t.Fatalf("decodeEnvelope() = %#v, want error", got)
+		}
+	})
+
+	t.Run("omitted field remains nil", func(t *testing.T) {
+		t.Parallel()
+		json := strings.Replace(validEnvelopeJSON, ",\n    \"exit_code\": 0", "", 1)
+		got, err := decodeEnvelope([]byte(json))
+		if err != nil {
+			t.Fatalf("decodeEnvelope() error = %v", err)
+		}
+		if got.Envelope.Outcome.ExitCode != nil {
+			t.Fatalf("ExitCode = %#v, want nil", got.Envelope.Outcome.ExitCode)
+		}
+	})
+}
+
+func TestEnvelopeDigestNormalizesEquivalentIntegerForms(t *testing.T) {
+	t.Parallel()
+
+	plainJSON := strings.Replace(validEnvelopeJSON, "\"exit_code\": 0", "\"exit_code\": 1000", 1)
+	exponentJSON := strings.Replace(validEnvelopeJSON, "\"exit_code\": 0", "\"exit_code\": 1e3", 1)
+
+	plain, err := decodeEnvelope([]byte(plainJSON))
+	if err != nil {
+		t.Fatalf("decodeEnvelope(plain) error = %v", err)
+	}
+	exponent, err := decodeEnvelope([]byte(exponentJSON))
+	if err != nil {
+		t.Fatalf("decodeEnvelope(exponent) error = %v", err)
+	}
+	if plain.Digest != exponent.Digest {
+		t.Fatalf("equivalent integer digests differ: %#v != %#v", plain.Digest, exponent.Digest)
+	}
+}
