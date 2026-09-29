@@ -98,7 +98,6 @@ func TestDecodeEnvelopeReturnsTypedValueTimesAndCanonicalDigest(t *testing.T) {
 	}
 }
 
-
 func TestDecodeEnvelopeRejectsMalformedV0Input(t *testing.T) {
 	t.Parallel()
 
