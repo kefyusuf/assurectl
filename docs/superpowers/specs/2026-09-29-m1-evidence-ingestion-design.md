@@ -79,6 +79,28 @@ No accepted ADR is superseded by this design. If implementation later requires a
 - new third-party dependencies;
 - arbitrary artifact-content interpretation based on media type.
 
+### 3.3 Composition seam
+
+The evidence subsystem receives an already resolved software subject; it does not execute Git or resolve refs itself.
+
+The intended package seam is:
+
+```go
+func LoadLocal(root string, subject domain.Subject) ([]Loaded, error)
+```
+
+The exact return container may be refined during implementation if a smaller zero-value-safe type is required, but the dependency direction is fixed:
+
+```text
+gitsubject.Resolve(...)
+        ↓
+   domain.Subject
+        ↓
+evidence.LoadLocal(...)
+```
+
+The evidence package must not depend on `gitsubject.Resolution`, invoke Git, re-resolve base/head refs, or infer a subject from envelope contents. It uses only the canonical repository URI and exact head revision already present in the resolved `domain.Subject`.
+
 ## 4. Local layout and discovery
 
 The local M1 convention is:
@@ -92,6 +114,8 @@ The local M1 convention is:
         ├── unit-tests.json
         └── security-scan.json
 ```
+
+The logical evidence root itself must resolve inside the supplied workspace root. A symlinked `.assurectl/evidence/` directory that escapes the workspace is rejected.
 
 Only regular `*.json` files directly inside `.assurectl/evidence/` are envelope candidates.
 
@@ -295,7 +319,7 @@ This makes the envelope digest insensitive to JSON whitespace and object-key ord
 
 The loader does not silently rewrite semantically equivalent timestamp representations or repository URI strings merely to make their digests equal. Parsed/canonical comparison values are validation facts; the typed supplied values remain the input being digested.
 
-The receipt schema's evidence-reference digest can later bind to this normalized typed-envelope digest, but receipt construction remains outside this slice.
+This normalized typed-envelope digest is retained so a later receipt-construction design can decide how evidence references bind to loaded envelopes. This slice does not establish new receipt semantics.
 
 ## 12. Trust metadata
 
@@ -414,6 +438,8 @@ Before this slice is considered complete:
 - exact-head CI passes the repository's required formatting, vet, race-test, and CLI-build checks;
 - the final diff is reviewed against this scope document;
 - any discovered need to change public protocol semantics stops implementation and returns to design/ADR review.
+
+This slice does not claim race-free protection against a malicious concurrent filesystem mutation between path resolution, stat, open, and hashing. The current threat model already lists time-of-check/time-of-use protections as deferred work. The implementation must preserve existing fail-closed path/symlink checks without overstating that deferred guarantee.
 
 ## 17. Follow-on boundary
 
