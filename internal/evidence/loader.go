@@ -111,7 +111,7 @@ func normalizeEnvelope(raw rawEnvelope) (Envelope, error) {
 	if err != nil {
 		return Envelope{}, err
 	}
-	exitCode, err := optionalBasicInteger("outcome.exit_code", raw.Outcome.ExitCode)
+	exitCode, err := optionalInteger("outcome.exit_code", raw.Outcome.ExitCode)
 	if err != nil {
 		return Envelope{}, err
 	}
@@ -228,19 +228,20 @@ func optionalDigest(field string, raw json.RawMessage) (*inputmeta.Digest, error
 	return &digest, nil
 }
 
-func optionalBasicInteger(field string, raw json.RawMessage) (*big.Int, error) {
+func optionalInteger(field string, raw json.RawMessage) (*big.Int, error) {
 	if len(raw) == 0 {
 		return nil, nil
 	}
-	if bytes.Equal(bytes.TrimSpace(raw), []byte("null")) {
+	trimmed := bytes.TrimSpace(raw)
+	if bytes.Equal(trimmed, []byte("null")) {
 		return nil, fmt.Errorf("%s must be an integer when present", field)
 	}
 
-	var value big.Int
-	if err := value.UnmarshalJSON(raw); err != nil {
+	value, ok := new(big.Rat).SetString(string(trimmed))
+	if !ok || !value.IsInt() {
 		return nil, fmt.Errorf("%s must be an integer when present", field)
 	}
-	return &value, nil
+	return new(big.Int).Set(value.Num()), nil
 }
 
 func validateDigest(field string, digest inputmeta.Digest) error {
