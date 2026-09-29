@@ -625,7 +625,7 @@ Order:
 1. call `validateResolvedSubject(subject)` even when the evidence directory is absent/empty;
 2. discover candidates;
 3. strict-decode each envelope;
-4. reject duplicate evidence IDs set-wide;
+4. reject duplicate evidence IDs and duplicate canonical artifact URIs set-wide;
 5. bind subject;
 6. verify the referenced artifact against `localDiscovery.EvidenceRoot`;
 7. construct `Loaded`;
@@ -637,6 +637,7 @@ Do not return partial results with a non-nil error.
 
 Add:
 - two valid files with same envelope `id` → error naming duplicate ID;
+- two otherwise valid envelopes referencing the same canonical `artifact.uri` → error naming duplicate artifact path;
 - first file valid + later artifact digest mismatch → `LoadLocal` returns error and no accepted slice;
 - repository mismatch in any member → complete call fails;
 - malformed member among valid siblings → complete call fails;
@@ -654,7 +655,7 @@ Expected: FAIL until set-wide validation is complete.
 
 - [ ] **Step 6: Implement set-wide uniqueness and all-or-error return**
 
-Use a map keyed by canonical evidence ID. Keep deterministic candidate order; do not reorder by ID after discovery unless the spec is deliberately changed.
+Use one map keyed by canonical evidence ID and one map keyed by the already-canonical accepted `artifact.uri`. Keep deterministic candidate order; do not reorder by ID or artifact path after discovery unless the spec is deliberately changed.
 
 - [ ] **Step 7: Write determinism tests**
 
@@ -757,7 +758,7 @@ Specifically verify:
 
 - [ ] **Step 5: Commit documentation-only status/evidence update if needed**
 
-If implementation exactly matches the approved design, update the design status from `Draft for review` to `Approved / implemented in M1 evidence-ingestion slice` only after all verification above is green.
+If implementation exactly matches the approved design, update the design status from `Approved for implementation planning` to `Implemented in M1 evidence-ingestion slice` only after all verification above is green.
 
 Use a docs-only commit, for example:
 
@@ -809,6 +810,7 @@ This implementation plan is complete only when the resulting PR demonstrates all
 - envelope digest is deterministic over the typed supplied input;
 - duplicate evidence IDs fail the complete local set;
 - one invalid member prevents a misleading partially accepted set;
+- duplicate canonical artifact URIs across the local set fail closed;
 - local evidence source metadata remains externally untrusted/advisory;
 - no network, new dependency, schema change, CLI evaluation, requirement evaluation, final evidence state, finding, verdict, decision, waiver, or receipt behavior entered the slice;
 - exact-head full CI is green before merge readiness is claimed.
