@@ -398,7 +398,7 @@ Exact file count may shrink if a smaller implementation is clearer; the responsi
 
 Supporting changes are limited to narrow reuse seams:
 
-- `internal/gitsubject`: expose existing repository-URI canonicalization without changing semantics;
+- `internal/gitsubject`: expose a narrow canonical repository-identity seam for evidence comparison while preserving the existing explicit/origin URI acceptance rules;
 - `internal/localinput`: optionally expose a safe regular-file opening primitive so containment/symlink logic is not duplicated, while preserving the existing 1 MiB behavior of configuration reads.
 
 The following surfaces remain untouched unless a concrete implementation contradiction is found and brought back through design review:
