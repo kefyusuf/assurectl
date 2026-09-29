@@ -164,7 +164,6 @@ func TestDecodeEnvelopeAcceptsEqualInvocationTimestamps(t *testing.T) {
 	}
 }
 
-
 func TestDecodeEnvelopeNormalizesJSONSchemaIntegerExitCode(t *testing.T) {
 	t.Parallel()
 
