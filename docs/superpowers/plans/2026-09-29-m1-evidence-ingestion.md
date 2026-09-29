@@ -306,7 +306,8 @@ git commit -m "feat: decode strict evidence envelopes"
 
 **Interfaces:**
 - Consumes: `localinput.ReadWorkspaceFile(root, relativePath string) ([]byte, error)`
-- Produces internal: `func discoverLocal(root string) ([]localCandidate, error)`
+- Produces internal: `func discoverLocal(root string) (localDiscovery, error)`
+- Produces internal: `localDiscovery{EvidenceRoot string, Candidates []localCandidate}`
 - Produces internal: `localCandidate{RelativePath string, Source string, Data []byte}`
 - Fixed evidence root: `.assurectl/evidence`
 - Source form: `workspace:.assurectl/evidence/<filename>`
@@ -335,7 +336,7 @@ Expected: FAIL because `discoverLocal` does not exist.
 
 Resolve the workspace root and logical evidence root fail-closed. Treat only a genuinely missing evidence directory as empty input. If the evidence root exists, require it to resolve inside the workspace and be a directory.
 
-Use `os.ReadDir`, identify direct regular `*.json` candidates, sort by canonical filename, and read candidate bytes through `localinput.ReadWorkspaceFile`.
+Use `os.ReadDir`, identify direct regular `*.json` candidates, sort by canonical filename, and read candidate bytes through `localinput.ReadWorkspaceFile`. Return the resolved, workspace-contained evidence-root path in `localDiscovery.EvidenceRoot`; this exact resolved root is the containment boundary later used for artifact opening.
 
 Do not recursively walk.
 
@@ -461,9 +462,9 @@ git commit -m "feat: bind evidence to resolved subjects"
 **Interfaces:**
 - Consumes: `localinput.OpenWorkspaceRegularFile(root, relativePath string) (*os.File, error)`
 - Consumes: `inputmeta.Digest`
-- Produces internal: `func verifyArtifact(root, uri string, expected inputmeta.Digest) error`
+- Produces internal: `func verifyArtifact(evidenceRoot, uri string, expected inputmeta.Digest) error`
 - Produces internal: `func validatePortableArtifactURI(uri string) error`
-- Artifact filesystem root: logical `.assurectl/evidence/`
+- Artifact filesystem root: the resolved `localDiscovery.EvidenceRoot`, never the broader workspace root
 
 - [ ] **Step 1: Write RED lexical path tests**
 
@@ -517,7 +518,7 @@ Add a test using a multi-megabyte artifact to prove verification is not subject 
 - [ ] **Step 5: Add RED symlink escape regression**
 
 Where symlinks are supported:
-- `.assurectl/evidence/artifacts/link.json` → file outside workspace/evidence root must error.
+- `.assurectl/evidence/artifacts/link.json` → file outside the evidence root must error, including a target that is still inside the workspace but elsewhere under that workspace.
 
 Also test a symlink that remains inside the evidence root if the spec/platform behavior permits it; it may succeed only when final resolved target remains inside the root and is regular.
 
@@ -533,7 +534,7 @@ Expected: FAIL until artifact verification exists.
 
 - [ ] **Step 7: Implement streaming SHA-256 verification**
 
-After URI validation, join the fixed evidence-root relative prefix with the safe URI, open with `OpenWorkspaceRegularFile`, then hash with `sha256.New()` + `io.Copy`. Compare lowercase hex digest exactly to the validated expected digest.
+After URI validation, call `OpenWorkspaceRegularFile(evidenceRoot, uri)` so symlink/path containment is enforced against the resolved evidence root itself, not merely against the broader workspace. Hash with `sha256.New()` + `io.Copy` and compare lowercase hex digest exactly to the validated expected digest.
 
 Do not parse artifact contents by media type.
 
@@ -620,7 +621,7 @@ Order:
 3. strict-decode each envelope;
 4. reject duplicate evidence IDs set-wide;
 5. bind subject;
-6. verify referenced artifact;
+6. verify the referenced artifact against `localDiscovery.EvidenceRoot`;
 7. construct `Loaded`;
 8. return only after the complete set succeeds.
 
