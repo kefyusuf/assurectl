@@ -133,7 +133,7 @@ func TestDecodeEnvelopeRejectsMalformedV0Input(t *testing.T) {
 		{
 			name: "null optional environment digest",
 			json: replace(
-				"\"environment_digest\": {\\n      \"algorithm\": \"sha256\",\\n      \"value\": \"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\"\\n    }",
+				"\"environment_digest\": {\n      \"algorithm\": \"sha256\",\n      \"value\": \"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\"\n    }",
 				"\"environment_digest\": null",
 			),
 		},
