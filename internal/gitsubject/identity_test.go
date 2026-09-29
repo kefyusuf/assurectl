@@ -156,7 +156,6 @@ func TestChangeSetDigestRejectsMalformedObjectIDs(t *testing.T) {
 	}
 }
 
-
 func TestCanonicalizeRepositoryIdentityRoundTripsResolverOutputs(t *testing.T) {
 	t.Parallel()
 
