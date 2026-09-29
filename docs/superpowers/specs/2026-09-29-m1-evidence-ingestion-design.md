@@ -1,6 +1,6 @@
 # M1 Evidence Ingestion and Intrinsic Validation Design
 
-**Status:** Draft for review  
+**Status:** Approved for implementation planning  
 **Date:** 2026-09-29  
 **Milestone:** M1 — Local advisory evaluation  
 **Base commit:** `85587181f2f18d79c22d8920d823d937cb79634a`  
@@ -47,6 +47,7 @@ No accepted ADR is superseded by this design. If implementation later requires a
 - typed representation of `assurectl/evidence-envelope/v0`;
 - schema-version and field-level semantic validation already required by the v0 schema/protocol;
 - duplicate evidence-ID rejection across the discovered set;
+- duplicate canonical artifact-path rejection across the discovered set;
 - RFC3339 semantic parsing and invocation time ordering;
 - safe local artifact-path validation and resolution;
 - local artifact regular-file verification;
@@ -270,6 +271,8 @@ The local loader rejects at least:
 - unsafe Windows device/path aliases;
 - trailing-space/trailing-dot aliases that are not portable.
 
+Accepted artifact URIs are already canonical path spellings because unsafe normalization aliases are rejected rather than rewritten. Reusing the same canonical `artifact.uri` in more than one discovered evidence envelope is rejected set-wide as a duplicate normalized artifact path.
+
 This slice does not implement a general URI resolver.
 
 ## 10. Artifact resolution and integrity
@@ -352,6 +355,7 @@ The local set fails closed if an envelope candidate cannot be safely and determi
 - invalid typed fields;
 - impossible or reversed timestamps;
 - duplicate evidence IDs;
+- duplicate canonical artifact paths;
 - unsafe artifact URI;
 - missing artifact;
 - non-regular artifact;
@@ -415,7 +419,7 @@ Implementation must proceed RED → GREEN.
 | Identity | malformed and duplicate evidence IDs fail |
 | Timestamp | impossible RFC3339 date and reversed interval fail |
 | Outcome | PASSED/FAILED/ERROR preserved independently |
-| Artifact path | absolute/traversal/backslash/URI aliases fail |
+| Artifact path | absolute/traversal/backslash/URI aliases and duplicate canonical artifact paths fail |
 | Symlink | artifact/root escape fails |
 | Artifact | missing/non-regular/digest mismatch fail |
 | Repository | canonical repository mismatch fails |
