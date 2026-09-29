@@ -1,6 +1,7 @@
 package evidence
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -94,5 +95,72 @@ func TestDecodeEnvelopeReturnsTypedValueTimesAndCanonicalDigest(t *testing.T) {
 	}
 	if first.Digest != second.Digest {
 		t.Fatalf("canonical digests differ: %#v != %#v", first.Digest, second.Digest)
+	}
+}
+
+
+func TestDecodeEnvelopeRejectsMalformedV0Input(t *testing.T) {
+	t.Parallel()
+
+	replace := func(old, replacement string) string {
+		t.Helper()
+		if !strings.Contains(validEnvelopeJSON, old) {
+			t.Fatalf("fixture does not contain %q", old)
+		}
+		return strings.Replace(validEnvelopeJSON, old, replacement, 1)
+	}
+
+	tests := []struct {
+		name string
+		json string
+	}{
+		{name: "unsupported schema version", json: replace("\"schema_version\": \"assurectl/evidence-envelope/v0\"", "\"schema_version\": \"assurectl/evidence-envelope/v9\"")},
+		{name: "self asserted trust field", json: replace("\"id\": \"ev-unit-tests-001\"", "\"trust_status\": \"TRUSTED\", \"id\": \"ev-unit-tests-001\"")},
+		{name: "duplicate json key", json: replace("\"id\": \"ev-unit-tests-001\"", "\"id\": \"ev-unit-tests-001\", \"id\": \"ev-unit-tests-001\"")},
+		{name: "case alias field", json: replace("\"id\": \"ev-unit-tests-001\"", "\"Id\": \"ev-unit-tests-001\"")},
+		{name: "invalid evidence id", json: replace("\"id\": \"ev-unit-tests-001\"", "\"id\": \"../bad\"")},
+		{name: "empty evidence type", json: replace("\"type\": \"test-result\"", "\"type\": \"\"")},
+		{name: "overlong producer identity", json: replace("\"identity\": \"example-developer\"", "\"identity\": \"" + strings.Repeat("x", 1025) + "\"")},
+		{name: "invalid subject revision", json: replace("\"revision\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"", "\"revision\": \"ABC\"")},
+		{name: "invalid environment digest algorithm", json: replace("\"algorithm\": \"sha256\"", "\"algorithm\": \"sha512\"")},
+		{name: "invalid artifact digest hex", json: replace("\"value\": \"eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\"", "\"value\": \"xyz\"")},
+		{name: "unsupported outcome", json: replace("\"status\": \"PASSED\"", "\"status\": \"SKIPPED\"")},
+		{name: "impossible timestamp", json: replace("\"started_at\": \"2026-09-02T09:10:00Z\"", "\"started_at\": \"2026-02-30T09:10:00Z\"")},
+		{name: "finished before started", json: replace("\"finished_at\": \"2026-09-02T09:10:01Z\"", "\"finished_at\": \"2026-09-02T09:09:59Z\"")},
+		{name: "empty optional workflow", json: replace("\"identity\": \"example-developer\"", "\"identity\": \"example-developer\", \"workflow\": \"\"")},
+		{name: "null optional workflow", json: replace("\"identity\": \"example-developer\"", "\"identity\": \"example-developer\", \"workflow\": null")},
+		{name: "empty optional workflow revision", json: replace("\"identity\": \"example-developer\"", "\"identity\": \"example-developer\", \"workflow_revision\": \"\"")},
+		{name: "null optional workflow revision", json: replace("\"identity\": \"example-developer\"", "\"identity\": \"example-developer\", \"workflow_revision\": null")},
+		{
+			name: "null optional environment digest",
+			json: replace(
+				"\"environment_digest\": {\\n      \"algorithm\": \"sha256\",\\n      \"value\": \"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\"\\n    }",
+				"\"environment_digest\": null",
+			),
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			if got, err := decodeEnvelope([]byte(tt.json)); err == nil {
+				t.Fatalf("decodeEnvelope() = %#v, want error", got)
+			}
+		})
+	}
+}
+
+func TestDecodeEnvelopeAcceptsEqualInvocationTimestamps(t *testing.T) {
+	t.Parallel()
+
+	json := strings.Replace(
+		validEnvelopeJSON,
+		"\"finished_at\": \"2026-09-02T09:10:01Z\"",
+		"\"finished_at\": \"2026-09-02T09:10:00Z\"",
+		1,
+	)
+	if _, err := decodeEnvelope([]byte(json)); err != nil {
+		t.Fatalf("decodeEnvelope() error = %v", err)
 	}
 }
