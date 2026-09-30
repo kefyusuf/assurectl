@@ -324,7 +324,6 @@ func TestDiscoverLocal(t *testing.T) {
 	})
 }
 
-
 func TestLoadLocalReturnsTypedAdvisoryEvidence(t *testing.T) {
 	t.Parallel()
 
