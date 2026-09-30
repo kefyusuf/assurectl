@@ -64,7 +64,6 @@ type rawOutcome struct {
 	ExitCode json.RawMessage        `json:"exit_code,omitempty"`
 }
 
-
 const localEvidenceRelativeRoot = ".assurectl/evidence"
 
 type localCandidate struct {
