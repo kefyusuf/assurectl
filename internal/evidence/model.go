@@ -17,7 +17,6 @@ const (
 	SubjectBindingOtherRevision SubjectBinding = "OTHER_REVISION"
 )
 
-
 type Loaded struct {
 	Envelope       Envelope
 	Source         string
