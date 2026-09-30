@@ -107,7 +107,6 @@ func TestArtifactSymlinkContainment(t *testing.T) {
 	}
 }
 
-
 func TestLoadLocalRejectsDuplicateEvidenceID(t *testing.T) {
 	t.Parallel()
 
