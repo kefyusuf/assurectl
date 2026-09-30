@@ -1,6 +1,7 @@
 package evidence
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -8,6 +9,7 @@ import (
 	"time"
 
 	"github.com/kefyusuf/assurectl/internal/domain"
+	"github.com/kefyusuf/assurectl/internal/inputmeta"
 )
 
 const validEnvelopeJSON = `{
@@ -320,4 +322,148 @@ func TestDiscoverLocal(t *testing.T) {
 			}
 		}
 	})
+}
+
+
+func TestLoadLocalReturnsTypedAdvisoryEvidence(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	evidenceRoot := filepath.Join(root, ".assurectl", "evidence")
+	artifactsRoot := filepath.Join(evidenceRoot, "artifacts")
+	if err := os.MkdirAll(artifactsRoot, 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	head := "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+	other := "cccccccccccccccccccccccccccccccccccccccc"
+	repository := "github.com/acme/checkout"
+
+	aArtifact := []byte("artifact-a")
+	zArtifact := []byte("artifact-z")
+	if err := os.WriteFile(filepath.Join(artifactsRoot, "a.json"), aArtifact, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(artifactsRoot, "z.json"), zArtifact, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	zEnvelope := loadLocalEnvelopeJSON(
+		"ev-z",
+		repository,
+		head,
+		domain.OutcomePassed,
+		"artifacts/z.json",
+		inputmeta.SHA256(zArtifact),
+		"2026-09-02T09:20:00Z",
+		"2026-09-02T09:20:01Z",
+	)
+	aEnvelope := loadLocalEnvelopeJSON(
+		"ev-a",
+		"https://github.com/acme/checkout.git",
+		other,
+		domain.OutcomeFailed,
+		"artifacts/a.json",
+		inputmeta.SHA256(aArtifact),
+		"2026-09-02T09:10:00Z",
+		"2026-09-02T09:10:01Z",
+	)
+
+	if err := os.WriteFile(filepath.Join(evidenceRoot, "z.json"), []byte(zEnvelope), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(evidenceRoot, "a.json"), []byte(aEnvelope), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := LoadLocal(root, domain.Subject{
+		RepositoryURI: repository,
+		HeadRevision:  head,
+	})
+	if err != nil {
+		t.Fatalf("LoadLocal() error = %v", err)
+	}
+	if len(got) != 2 {
+		t.Fatalf("LoadLocal() returned %d entries, want 2", len(got))
+	}
+
+	if got[0].Source != "workspace:.assurectl/evidence/a.json" ||
+		got[1].Source != "workspace:.assurectl/evidence/z.json" {
+		t.Fatalf("sources = %q, %q", got[0].Source, got[1].Source)
+	}
+	for i := range got {
+		if got[i].TrustStatus != inputmeta.TrustStatusUntrusted {
+			t.Fatalf("got[%d].TrustStatus = %q", i, got[i].TrustStatus)
+		}
+		if got[i].AuthorityBasis != inputmeta.AuthorityBasisAdvisoryWorkspace {
+			t.Fatalf("got[%d].AuthorityBasis = %q", i, got[i].AuthorityBasis)
+		}
+		if got[i].Digest.Algorithm != inputmeta.DigestAlgorithmSHA256 || got[i].Digest.Value == "" {
+			t.Fatalf("got[%d].Digest = %#v", i, got[i].Digest)
+		}
+		if got[i].StartedAt.IsZero() || got[i].FinishedAt.IsZero() {
+			t.Fatalf("got[%d] parsed times are zero", i)
+		}
+	}
+
+	if got[0].SubjectBinding != SubjectBindingOtherRevision ||
+		got[1].SubjectBinding != SubjectBindingExact {
+		t.Fatalf("bindings = %q, %q", got[0].SubjectBinding, got[1].SubjectBinding)
+	}
+	if got[0].Envelope.Outcome.Status != domain.OutcomeFailed ||
+		got[1].Envelope.Outcome.Status != domain.OutcomePassed {
+		t.Fatalf("outcomes = %q, %q", got[0].Envelope.Outcome.Status, got[1].Envelope.Outcome.Status)
+	}
+}
+
+func loadLocalEnvelopeJSON(
+	id string,
+	repositoryURI string,
+	revision string,
+	outcome domain.ObservedOutcome,
+	artifactURI string,
+	artifactDigest inputmeta.Digest,
+	startedAt string,
+	finishedAt string,
+) string {
+	return fmt.Sprintf(`{
+  "schema_version": "assurectl/evidence-envelope/v0",
+  "id": %q,
+  "type": "test-result",
+  "subject": {
+    "repository_uri": %q,
+    "revision": %q
+  },
+  "producer": {
+    "type": "local-user",
+    "identity": "example-developer"
+  },
+  "invocation": {
+    "command_id": "test.unit",
+    "started_at": %q,
+    "finished_at": %q
+  },
+  "outcome": {
+    "status": %q,
+    "exit_code": 0
+  },
+  "artifact": {
+    "uri": %q,
+    "digest": {
+      "algorithm": %q,
+      "value": %q
+    },
+    "media_type": "application/json"
+  }
+}`,
+		id,
+		repositoryURI,
+		revision,
+		startedAt,
+		finishedAt,
+		outcome,
+		artifactURI,
+		artifactDigest.Algorithm,
+		artifactDigest.Value,
+	)
 }
