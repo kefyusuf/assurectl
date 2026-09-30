@@ -9,6 +9,13 @@ import (
 
 const SchemaVersion = "assurectl/evidence-envelope/v0"
 
+type SubjectBinding string
+
+const (
+	SubjectBindingExact         SubjectBinding = "EXACT"
+	SubjectBindingOtherRevision SubjectBinding = "OTHER_REVISION"
+)
+
 type Envelope struct {
 	SchemaVersion string     `json:"schema_version"`
 	ID            string     `json:"id"`
