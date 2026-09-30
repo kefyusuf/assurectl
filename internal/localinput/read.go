@@ -13,6 +13,31 @@ import (
 const MaxWorkspaceInputBytes int64 = 1 << 20
 
 func ReadWorkspaceFile(root, relativePath string) ([]byte, error) {
+	file, err := OpenWorkspaceRegularFile(root, relativePath)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	info, err := file.Stat()
+	if err != nil {
+		return nil, fmt.Errorf("stat workspace input %q: %w", relativePath, err)
+	}
+	if info.Size() > MaxWorkspaceInputBytes {
+		return nil, fmt.Errorf("workspace input %q exceeds maximum size of %d bytes", relativePath, MaxWorkspaceInputBytes)
+	}
+
+	data, err := io.ReadAll(io.LimitReader(file, MaxWorkspaceInputBytes+1))
+	if err != nil {
+		return nil, fmt.Errorf("read workspace input %q: %w", relativePath, err)
+	}
+	if int64(len(data)) > MaxWorkspaceInputBytes {
+		return nil, fmt.Errorf("workspace input %q exceeds maximum size of %d bytes", relativePath, MaxWorkspaceInputBytes)
+	}
+	return data, nil
+}
+
+func OpenWorkspaceRegularFile(root, relativePath string) (*os.File, error) {
 	if strings.TrimSpace(root) == "" {
 		return nil, errors.New("workspace root is empty")
 	}
@@ -59,24 +84,12 @@ func ReadWorkspaceFile(root, relativePath string) ([]byte, error) {
 	if !info.Mode().IsRegular() {
 		return nil, fmt.Errorf("workspace input %q is not a regular file", relativePath)
 	}
-	if info.Size() > MaxWorkspaceInputBytes {
-		return nil, fmt.Errorf("workspace input %q exceeds maximum size of %d bytes", relativePath, MaxWorkspaceInputBytes)
-	}
 
 	file, err := os.Open(resolvedPath)
 	if err != nil {
 		return nil, fmt.Errorf("open workspace input %q: %w", relativePath, err)
 	}
-	defer file.Close()
-
-	data, err := io.ReadAll(io.LimitReader(file, MaxWorkspaceInputBytes+1))
-	if err != nil {
-		return nil, fmt.Errorf("read workspace input %q: %w", relativePath, err)
-	}
-	if int64(len(data)) > MaxWorkspaceInputBytes {
-		return nil, fmt.Errorf("workspace input %q exceeds maximum size of %d bytes", relativePath, MaxWorkspaceInputBytes)
-	}
-	return data, nil
+	return file, nil
 }
 
 func pathWithin(root, candidate string) (bool, error) {

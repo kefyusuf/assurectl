@@ -155,3 +155,99 @@ func TestChangeSetDigestRejectsMalformedObjectIDs(t *testing.T) {
 		t.Fatalf("changeSetDigest with 64-char object IDs: %v", err)
 	}
 }
+
+func TestCanonicalizeRepositoryIdentityRoundTripsResolverOutputs(t *testing.T) {
+	t.Parallel()
+
+	const localIdentity = "local://sha256/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+	tests := []struct {
+		name string
+		raw  string
+		want string
+	}{
+		{
+			name: "raw hosted https",
+			raw:  "https://github.com/acme/repo.git",
+			want: "github.com/acme/repo",
+		},
+		{
+			name: "raw hosted scp",
+			raw:  "git@github.com:acme/repo.git",
+			want: "github.com/acme/repo",
+		},
+		{
+			name: "canonical hosted",
+			raw:  "github.com/acme/repo",
+			want: "github.com/acme/repo",
+		},
+		{
+			name: "canonical self hosted https",
+			raw:  "https://git.example.com/proj/repo",
+			want: "https://git.example.com/proj/repo",
+		},
+		{
+			name: "canonical self hosted ssh",
+			raw:  "ssh://git@git.example.com/proj/repo",
+			want: "ssh://git@git.example.com/proj/repo",
+		},
+		{
+			name: "canonical self hosted scp identity",
+			raw:  "ssh+scp://git@git.example.com/proj/repo",
+			want: "ssh+scp://git@git.example.com/proj/repo",
+		},
+		{
+			name: "canonical local advisory identity",
+			raw:  localIdentity,
+			want: localIdentity,
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			got, err := CanonicalizeRepositoryIdentity(tt.raw)
+			if err != nil {
+				t.Fatalf("CanonicalizeRepositoryIdentity(%q): %v", tt.raw, err)
+			}
+			if got != tt.want {
+				t.Fatalf("CanonicalizeRepositoryIdentity(%q) = %q, want %q", tt.raw, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestCanonicalizeRepositoryIdentityRejectsMalformedCanonicalInputs(t *testing.T) {
+	t.Parallel()
+
+	inputs := []string{
+		"local://sha256/abc",
+		"local://sha256/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+		"local://sha256/gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg",
+		"ssh+scp://git@git.example.com/proj/../repo",
+		"github.com/acme/../repo",
+		" github.com/acme/repo",
+		"github.com/acme/repo\n",
+	}
+
+	for _, raw := range inputs {
+		raw := raw
+		t.Run(raw, func(t *testing.T) {
+			t.Parallel()
+
+			if got, err := CanonicalizeRepositoryIdentity(raw); err == nil {
+				t.Fatalf("CanonicalizeRepositoryIdentity(%q) = %q, want error", raw, got)
+			}
+		})
+	}
+}
+
+func TestCanonicalizeRepositoryURIDoesNotAcceptLocalAdvisoryIdentity(t *testing.T) {
+	t.Parallel()
+
+	const raw = "local://sha256/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+	if got, err := canonicalizeRepositoryURI(raw); err == nil {
+		t.Fatalf("canonicalizeRepositoryURI(%q) = %q, want error", raw, got)
+	}
+}
