@@ -1,10 +1,16 @@
 package evidence
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
+	"io"
 	"path"
 	"strings"
 	"unicode/utf8"
+
+	"github.com/kefyusuf/assurectl/internal/inputmeta"
+	"github.com/kefyusuf/assurectl/internal/localinput"
 )
 
 func validatePortableArtifactURI(uri string) error {
@@ -61,4 +67,30 @@ func isWindowsDeviceName(segment string) bool {
 		return base[3] >= '1' && base[3] <= '9'
 	}
 	return false
+}
+
+
+func verifyArtifact(evidenceRoot, uri string, expected inputmeta.Digest) error {
+	if err := validatePortableArtifactURI(uri); err != nil {
+		return err
+	}
+	if err := validateDigest("artifact.digest", expected); err != nil {
+		return err
+	}
+
+	file, err := localinput.OpenWorkspaceRegularFile(evidenceRoot, uri)
+	if err != nil {
+		return fmt.Errorf("open artifact %q: %w", uri, err)
+	}
+	defer file.Close()
+
+	hasher := sha256.New()
+	if _, err := io.Copy(hasher, file); err != nil {
+		return fmt.Errorf("hash artifact %q: %w", uri, err)
+	}
+	actual := hex.EncodeToString(hasher.Sum(nil))
+	if actual != expected.Value {
+		return fmt.Errorf("artifact %q digest mismatch", uri)
+	}
+	return nil
 }
