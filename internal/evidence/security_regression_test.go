@@ -4,6 +4,8 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/kefyusuf/assurectl/internal/inputmeta"
 )
 
 func TestDiscoverLocalRejectsUnsafeEvidenceRoot(t *testing.T) {
@@ -63,4 +65,43 @@ func TestDiscoverLocalRejectsUnsafeEvidenceRoot(t *testing.T) {
 			t.Skipf("platform/user can still read mode-000 file; discovery returned %#v", got)
 		}
 	})
+}
+
+
+func TestArtifactSymlinkContainment(t *testing.T) {
+	t.Parallel()
+
+	workspace := t.TempDir()
+	evidenceRoot := filepath.Join(workspace, ".assurectl", "evidence")
+	artifactsRoot := filepath.Join(evidenceRoot, "artifacts")
+	if err := os.MkdirAll(artifactsRoot, 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	data := []byte("artifact")
+	expected := inputmeta.SHA256(data)
+
+	outsideEvidence := filepath.Join(workspace, "outside-evidence.json")
+	if err := os.WriteFile(outsideEvidence, data, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	outsideLink := filepath.Join(artifactsRoot, "outside-link.json")
+	if err := os.Symlink(outsideEvidence, outsideLink); err != nil {
+		t.Skipf("symlink unsupported: %v", err)
+	}
+	if err := verifyArtifact(evidenceRoot, "artifacts/outside-link.json", expected); err == nil {
+		t.Fatal("verifyArtifact(outside evidence-root symlink) error = nil, want error")
+	}
+
+	insideTarget := filepath.Join(artifactsRoot, "inside-target.json")
+	if err := os.WriteFile(insideTarget, data, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	insideLink := filepath.Join(artifactsRoot, "inside-link.json")
+	if err := os.Symlink(insideTarget, insideLink); err != nil {
+		t.Skipf("symlink unsupported: %v", err)
+	}
+	if err := verifyArtifact(evidenceRoot, "artifacts/inside-link.json", expected); err != nil {
+		t.Fatalf("verifyArtifact(inside evidence-root symlink) error = %v", err)
+	}
 }
