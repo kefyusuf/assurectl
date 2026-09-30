@@ -69,7 +69,6 @@ func isWindowsDeviceName(segment string) bool {
 	return false
 }
 
-
 func verifyArtifact(evidenceRoot, uri string, expected inputmeta.Digest) error {
 	if err := validatePortableArtifactURI(uri); err != nil {
 		return err
