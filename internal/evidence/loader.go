@@ -6,12 +6,17 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"os"
+	"path/filepath"
 	"regexp"
+	"sort"
+	"strings"
 	"time"
 	"unicode/utf8"
 
 	"github.com/kefyusuf/assurectl/internal/domain"
 	"github.com/kefyusuf/assurectl/internal/inputmeta"
+	"github.com/kefyusuf/assurectl/internal/localinput"
 	"github.com/kefyusuf/assurectl/internal/strictjson"
 )
 
@@ -57,6 +62,135 @@ type rawInvocation struct {
 type rawOutcome struct {
 	Status   domain.ObservedOutcome `json:"status"`
 	ExitCode json.RawMessage        `json:"exit_code,omitempty"`
+}
+
+
+const localEvidenceRelativeRoot = ".assurectl/evidence"
+
+type localCandidate struct {
+	RelativePath string
+	Source       string
+	Data         []byte
+}
+
+type localDiscovery struct {
+	EvidenceRoot string
+	Candidates   []localCandidate
+}
+
+func discoverLocal(root string) (localDiscovery, error) {
+	if strings.TrimSpace(root) == "" {
+		return localDiscovery{}, errors.New("workspace root is empty")
+	}
+
+	rootAbs, err := filepath.Abs(root)
+	if err != nil {
+		return localDiscovery{}, fmt.Errorf("resolve workspace root: %w", err)
+	}
+	resolvedRoot, err := filepath.EvalSymlinks(rootAbs)
+	if err != nil {
+		return localDiscovery{}, fmt.Errorf("resolve workspace root: %w", err)
+	}
+	rootInfo, err := os.Stat(resolvedRoot)
+	if err != nil {
+		return localDiscovery{}, fmt.Errorf("stat workspace root: %w", err)
+	}
+	if !rootInfo.IsDir() {
+		return localDiscovery{}, errors.New("workspace root is not a directory")
+	}
+
+	controlDir := filepath.Join(resolvedRoot, ".assurectl")
+	if _, err := os.Lstat(controlDir); err != nil {
+		if os.IsNotExist(err) {
+			return localDiscovery{}, nil
+		}
+		return localDiscovery{}, fmt.Errorf("inspect evidence control directory: %w", err)
+	}
+	resolvedControlDir, err := filepath.EvalSymlinks(controlDir)
+	if err != nil {
+		return localDiscovery{}, fmt.Errorf("resolve evidence control directory: %w", err)
+	}
+	inside, err := discoveryPathWithin(resolvedRoot, resolvedControlDir)
+	if err != nil {
+		return localDiscovery{}, fmt.Errorf("resolve evidence control directory: %w", err)
+	}
+	if !inside {
+		return localDiscovery{}, errors.New("evidence control directory resolves outside workspace")
+	}
+	controlInfo, err := os.Stat(resolvedControlDir)
+	if err != nil {
+		return localDiscovery{}, fmt.Errorf("stat evidence control directory: %w", err)
+	}
+	if !controlInfo.IsDir() {
+		return localDiscovery{}, errors.New("evidence control directory is not a directory")
+	}
+
+	logicalEvidenceRoot := filepath.Join(resolvedControlDir, "evidence")
+	if _, err := os.Lstat(logicalEvidenceRoot); err != nil {
+		if os.IsNotExist(err) {
+			return localDiscovery{}, nil
+		}
+		return localDiscovery{}, fmt.Errorf("inspect evidence root: %w", err)
+	}
+	resolvedEvidenceRoot, err := filepath.EvalSymlinks(logicalEvidenceRoot)
+	if err != nil {
+		return localDiscovery{}, fmt.Errorf("resolve evidence root: %w", err)
+	}
+	inside, err = discoveryPathWithin(resolvedRoot, resolvedEvidenceRoot)
+	if err != nil {
+		return localDiscovery{}, fmt.Errorf("resolve evidence root: %w", err)
+	}
+	if !inside {
+		return localDiscovery{}, errors.New("evidence root resolves outside workspace")
+	}
+	evidenceInfo, err := os.Stat(resolvedEvidenceRoot)
+	if err != nil {
+		return localDiscovery{}, fmt.Errorf("stat evidence root: %w", err)
+	}
+	if !evidenceInfo.IsDir() {
+		return localDiscovery{}, errors.New("evidence root is not a directory")
+	}
+
+	entries, err := os.ReadDir(resolvedEvidenceRoot)
+	if err != nil {
+		return localDiscovery{}, fmt.Errorf("read evidence root: %w", err)
+	}
+
+	names := make([]string, 0, len(entries))
+	for _, entry := range entries {
+		if !entry.Type().IsRegular() || filepath.Ext(entry.Name()) != ".json" {
+			continue
+		}
+		names = append(names, entry.Name())
+	}
+	sort.Strings(names)
+
+	candidates := make([]localCandidate, 0, len(names))
+	for _, name := range names {
+		relativePath := localEvidenceRelativeRoot + "/" + name
+		data, err := localinput.ReadWorkspaceFile(root, relativePath)
+		if err != nil {
+			return localDiscovery{}, fmt.Errorf("read evidence candidate %q: %w", relativePath, err)
+		}
+		candidates = append(candidates, localCandidate{
+			RelativePath: relativePath,
+			Source:       "workspace:" + relativePath,
+			Data:         data,
+		})
+	}
+
+	return localDiscovery{
+		EvidenceRoot: resolvedEvidenceRoot,
+		Candidates:   candidates,
+	}, nil
+}
+
+func discoveryPathWithin(root, candidate string) (bool, error) {
+	relative, err := filepath.Rel(root, candidate)
+	if err != nil {
+		return false, err
+	}
+	return relative != ".." && !strings.HasPrefix(relative, ".."+string(filepath.Separator)), nil
 }
 
 func decodeEnvelope(data []byte) (decodedEnvelope, error) {
