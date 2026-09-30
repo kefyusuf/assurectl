@@ -202,34 +202,66 @@ func LoadLocal(root string, subject domain.Subject) ([]Loaded, error) {
 		return nil, err
 	}
 
-	loaded := make([]Loaded, 0, len(discovery.Candidates))
+	type decodedCandidate struct {
+		candidate localCandidate
+		decoded   decodedEnvelope
+	}
+	decodedCandidates := make([]decodedCandidate, 0, len(discovery.Candidates))
+	seenIDs := make(map[string]struct{}, len(discovery.Candidates))
+	seenArtifactURIs := make(map[string]struct{}, len(discovery.Candidates))
+
 	for _, candidate := range discovery.Candidates {
 		decoded, err := decodeEnvelope(candidate.Data)
 		if err != nil {
 			return nil, fmt.Errorf("load evidence %q: %w", candidate.Source, err)
 		}
-		binding, err := bindSubject(decoded.Envelope.Subject, subject)
-		if err != nil {
-			return nil, fmt.Errorf("bind evidence %q: %w", candidate.Source, err)
+		if _, exists := seenIDs[decoded.Envelope.ID]; exists {
+			return nil, fmt.Errorf("duplicate evidence id %q", decoded.Envelope.ID)
 		}
-		if err := verifyArtifact(discovery.EvidenceRoot, decoded.Envelope.Artifact.URI, decoded.Envelope.Artifact.Digest); err != nil {
-			return nil, fmt.Errorf("verify evidence %q artifact: %w", candidate.Source, err)
+		seenIDs[decoded.Envelope.ID] = struct{}{}
+
+		artifactURI := decoded.Envelope.Artifact.URI
+		if err := validatePortableArtifactURI(artifactURI); err != nil {
+			return nil, fmt.Errorf("load evidence %q artifact uri: %w", candidate.Source, err)
+		}
+		if _, exists := seenArtifactURIs[artifactURI]; exists {
+			return nil, fmt.Errorf("duplicate artifact uri %q", artifactURI)
+		}
+		seenArtifactURIs[artifactURI] = struct{}{}
+
+		decodedCandidates = append(decodedCandidates, decodedCandidate{
+			candidate: candidate,
+			decoded:   decoded,
+		})
+	}
+
+	loaded := make([]Loaded, 0, len(decodedCandidates))
+	for _, item := range decodedCandidates {
+		binding, err := bindSubject(item.decoded.Envelope.Subject, subject)
+		if err != nil {
+			return nil, fmt.Errorf("bind evidence %q: %w", item.candidate.Source, err)
+		}
+		if err := verifyArtifact(
+			discovery.EvidenceRoot,
+			item.decoded.Envelope.Artifact.URI,
+			item.decoded.Envelope.Artifact.Digest,
+		); err != nil {
+			return nil, fmt.Errorf("verify evidence %q artifact: %w", item.candidate.Source, err)
 		}
 
 		loaded = append(loaded, Loaded{
-			Envelope:       decoded.Envelope,
-			Source:         candidate.Source,
-			Digest:         decoded.Digest,
+			Envelope:       item.decoded.Envelope,
+			Source:         item.candidate.Source,
+			Digest:         item.decoded.Digest,
 			TrustStatus:    inputmeta.TrustStatusUntrusted,
 			AuthorityBasis: inputmeta.AuthorityBasisAdvisoryWorkspace,
-			StartedAt:      decoded.StartedAt,
-			FinishedAt:     decoded.FinishedAt,
+			StartedAt:      item.decoded.StartedAt,
+			FinishedAt:     item.decoded.FinishedAt,
 			SubjectBinding: binding,
 		})
 	}
 	return loaded, nil
 }
-
 func decodeEnvelope(data []byte) (decodedEnvelope, error) {
 	var raw rawEnvelope
 	if err := strictjson.Decode(data, &raw); err != nil {
