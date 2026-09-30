@@ -9,7 +9,7 @@ import (
 const (
 	testHeadRevision  = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
 	testOtherRevision = "cccccccccccccccccccccccccccccccccccccccc"
-	testLocalRepo      = "local://sha256/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+	testLocalRepo     = "local://sha256/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 )
 
 func TestBindSubject(t *testing.T) {
