@@ -247,7 +247,6 @@ func TestEnvelopeDigestNormalizesEquivalentIntegerForms(t *testing.T) {
 	}
 }
 
-
 func TestDiscoverLocal(t *testing.T) {
 	t.Parallel()
 
@@ -272,10 +271,10 @@ func TestDiscoverLocal(t *testing.T) {
 			t.Fatal(err)
 		}
 		for name, data := range map[string]string{
-			"z.json":                    "{}",
-			"a.json":                    "{}",
-			"ignore.txt":                "ignored",
-			"artifacts/nested.json":     "{}",
+			"z.json":                "{}",
+			"a.json":                "{}",
+			"ignore.txt":            "ignored",
+			"artifacts/nested.json": "{}",
 		} {
 			path := filepath.Join(evidenceRoot, filepath.FromSlash(name))
 			if err := os.WriteFile(path, []byte(data), 0o644); err != nil {
