@@ -67,7 +67,6 @@ func TestDiscoverLocalRejectsUnsafeEvidenceRoot(t *testing.T) {
 	})
 }
 
-
 func TestArtifactSymlinkContainment(t *testing.T) {
 	t.Parallel()
 
