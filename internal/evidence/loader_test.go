@@ -1,6 +1,8 @@
 package evidence
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -243,4 +245,80 @@ func TestEnvelopeDigestNormalizesEquivalentIntegerForms(t *testing.T) {
 	if plain.Digest != exponent.Digest {
 		t.Fatalf("equivalent integer digests differ: %#v != %#v", plain.Digest, exponent.Digest)
 	}
+}
+
+
+func TestDiscoverLocal(t *testing.T) {
+	t.Parallel()
+
+	t.Run("missing evidence directory is empty", func(t *testing.T) {
+		t.Parallel()
+
+		got, err := discoverLocal(t.TempDir())
+		if err != nil {
+			t.Fatalf("discoverLocal() error = %v", err)
+		}
+		if len(got.Candidates) != 0 {
+			t.Fatalf("Candidates = %#v, want empty", got.Candidates)
+		}
+	})
+
+	t.Run("discovers only direct regular json files in canonical order", func(t *testing.T) {
+		t.Parallel()
+
+		root := t.TempDir()
+		evidenceRoot := filepath.Join(root, ".assurectl", "evidence")
+		if err := os.MkdirAll(filepath.Join(evidenceRoot, "artifacts"), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		for name, data := range map[string]string{
+			"z.json":                    "{}",
+			"a.json":                    "{}",
+			"ignore.txt":                "ignored",
+			"artifacts/nested.json":     "{}",
+		} {
+			path := filepath.Join(evidenceRoot, filepath.FromSlash(name))
+			if err := os.WriteFile(path, []byte(data), 0o644); err != nil {
+				t.Fatal(err)
+			}
+		}
+		if err := os.Mkdir(filepath.Join(evidenceRoot, "directory.json"), 0o755); err != nil {
+			t.Fatal(err)
+		}
+
+		got, err := discoverLocal(root)
+		if err != nil {
+			t.Fatalf("discoverLocal() error = %v", err)
+		}
+		resolvedEvidenceRoot, err := filepath.EvalSymlinks(evidenceRoot)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got.EvidenceRoot != resolvedEvidenceRoot {
+			t.Fatalf("EvidenceRoot = %q, want %q", got.EvidenceRoot, resolvedEvidenceRoot)
+		}
+		if len(got.Candidates) != 2 {
+			t.Fatalf("Candidates = %#v, want 2 entries", got.Candidates)
+		}
+
+		wantPaths := []string{
+			".assurectl/evidence/a.json",
+			".assurectl/evidence/z.json",
+		}
+		wantSources := []string{
+			"workspace:.assurectl/evidence/a.json",
+			"workspace:.assurectl/evidence/z.json",
+		}
+		for i := range wantPaths {
+			if got.Candidates[i].RelativePath != wantPaths[i] {
+				t.Fatalf("Candidates[%d].RelativePath = %q, want %q", i, got.Candidates[i].RelativePath, wantPaths[i])
+			}
+			if got.Candidates[i].Source != wantSources[i] {
+				t.Fatalf("Candidates[%d].Source = %q, want %q", i, got.Candidates[i].Source, wantSources[i])
+			}
+			if string(got.Candidates[i].Data) != "{}" {
+				t.Fatalf("Candidates[%d].Data = %q, want {}", i, got.Candidates[i].Data)
+			}
+		}
+	})
 }
