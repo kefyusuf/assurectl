@@ -192,6 +192,45 @@ func discoveryPathWithin(root, candidate string) (bool, error) {
 	return relative != ".." && !strings.HasPrefix(relative, ".."+string(filepath.Separator)), nil
 }
 
+
+func LoadLocal(root string, subject domain.Subject) ([]Loaded, error) {
+	if err := validateResolvedSubject(subject); err != nil {
+		return nil, err
+	}
+
+	discovery, err := discoverLocal(root)
+	if err != nil {
+		return nil, err
+	}
+
+	loaded := make([]Loaded, 0, len(discovery.Candidates))
+	for _, candidate := range discovery.Candidates {
+		decoded, err := decodeEnvelope(candidate.Data)
+		if err != nil {
+			return nil, fmt.Errorf("load evidence %q: %w", candidate.Source, err)
+		}
+		binding, err := bindSubject(decoded.Envelope.Subject, subject)
+		if err != nil {
+			return nil, fmt.Errorf("bind evidence %q: %w", candidate.Source, err)
+		}
+		if err := verifyArtifact(discovery.EvidenceRoot, decoded.Envelope.Artifact.URI, decoded.Envelope.Artifact.Digest); err != nil {
+			return nil, fmt.Errorf("verify evidence %q artifact: %w", candidate.Source, err)
+		}
+
+		loaded = append(loaded, Loaded{
+			Envelope:       decoded.Envelope,
+			Source:         candidate.Source,
+			Digest:         decoded.Digest,
+			TrustStatus:    inputmeta.TrustStatusUntrusted,
+			AuthorityBasis: inputmeta.AuthorityBasisAdvisoryWorkspace,
+			StartedAt:      decoded.StartedAt,
+			FinishedAt:     decoded.FinishedAt,
+			SubjectBinding: binding,
+		})
+	}
+	return loaded, nil
+}
+
 func decodeEnvelope(data []byte) (decodedEnvelope, error) {
 	var raw rawEnvelope
 	if err := strictjson.Decode(data, &raw); err != nil {
