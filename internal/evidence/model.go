@@ -2,6 +2,7 @@ package evidence
 
 import (
 	"math/big"
+	"time"
 
 	"github.com/kefyusuf/assurectl/internal/domain"
 	"github.com/kefyusuf/assurectl/internal/inputmeta"
@@ -15,6 +16,18 @@ const (
 	SubjectBindingExact         SubjectBinding = "EXACT"
 	SubjectBindingOtherRevision SubjectBinding = "OTHER_REVISION"
 )
+
+
+type Loaded struct {
+	Envelope       Envelope
+	Source         string
+	Digest         inputmeta.Digest
+	TrustStatus    inputmeta.TrustStatus
+	AuthorityBasis inputmeta.AuthorityBasis
+	StartedAt      time.Time
+	FinishedAt     time.Time
+	SubjectBinding SubjectBinding
+}
 
 type Envelope struct {
 	SchemaVersion string     `json:"schema_version"`
