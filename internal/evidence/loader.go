@@ -192,7 +192,6 @@ func discoveryPathWithin(root, candidate string) (bool, error) {
 	return relative != ".." && !strings.HasPrefix(relative, ".."+string(filepath.Separator)), nil
 }
 
-
 func LoadLocal(root string, subject domain.Subject) ([]Loaded, error) {
 	if err := validateResolvedSubject(subject); err != nil {
 		return nil, err
