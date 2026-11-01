@@ -145,9 +145,14 @@ Table tests over `Evaluate(Input)`: zero `EvaluatedAt` rejected; empty/missing d
 
 - [x] **Step 5: Docs-only commit** flipping the design status to `Implemented in M1 evaluation slice` after all verification is green, plus plan checkbox updates.
 
-- [ ] **Step 6: Push and require exact-head CI** (Go 1.26.x / 1.27.x matrix); record head SHA, run ID, and per-check results.
+- [x] **Step 6: Push and require exact-head CI** (Go 1.26.x / 1.27.x matrix); record head SHA, run ID, and per-check results.
+  - exact head SHA: `78cff71` (full: `78cff71a` on `feat/m1-evaluation`; recorded before the docs-only evidence commit that follows);
+  - workflow run: `41317123646` (Go 1.26.x pass, Go 1.27.x pass);
+  - formatting: pass — including a cross-version gofmt check: the first CI run failed Go 1.26.x's format step because gofmt 1.26 and 1.27 disagree on composite literals inside multi-value returns; fixed by extracting `missingResult` (commit `fix: restructure missing-result return for cross-version gofmt`) and verified with both toolchains on a clean LF view;
+  - vet: pass; race-test: pass (ubuntu-latest; the local Windows host cannot run `-race`); CLI build: pass.
 
-- [ ] **Step 7: Final review gate** against the design spec, the foundation design (§9, §10, §13, INV-005..012), ADR-0002, ADR-0004, ADR-0005, ADR-0007, and `docs/threat-model/v0.md`; scope additions (waivers, `verify`, receipts) are rejected as new-slice work.
+- [x] **Step 7: Final review gate** against the design spec, the foundation design (§9, §10, §13, INV-005..012), ADR-0002, ADR-0004, ADR-0005, ADR-0007, and `docs/threat-model/v0.md`; scope additions (waivers, `verify`, receipts) are rejected as new-slice work.
+  - Review performed: changed files are exactly `internal/evaluation/*` plus docs status/checkbox updates; no `time.Now`/filesystem/network/environment access in the new package; kernel called once and returned unmodified; `ACCEPTED_WITH_RISK` unreachable; both-gofmt verification added after the CI format failure. A pre-commit Mimosa scan flags pre-existing `internal/gitsubject` exec patterns as command injection; assessed as scanner false positives (unchanged by this slice).
 
 ## Exit Criteria
 
