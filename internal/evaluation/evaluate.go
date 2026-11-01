@@ -140,6 +140,29 @@ func joinEvidenceIDs(ids []string) string {
 	return strings.Join(ids, ",")
 }
 
+// missingResult builds the MISSING outcome for a requirement with no
+// matching evidence, together with its blocking finding.
+func missingResult(requirement policy.Requirement) (domain.RequirementResult, []domain.Finding) {
+	result := domain.RequirementResult{
+		RequirementID: requirement.ID,
+		EvidenceState: domain.EvidenceMissing,
+		Waivable:      requirement.Waivable,
+		WaiverStatus:  domain.WaiverNotApplicable,
+	}
+	finding := domain.Finding{
+		Code:          "EVIDENCE_MISSING",
+		Category:      domain.FindingCategoryEvidence,
+		Severity:      domain.SeverityError,
+		RequirementID: requirement.ID,
+		Blocking:      true,
+		Message: fmt.Sprintf(
+			"policy requirement %q matched no evidence envelope of type %q",
+			requirement.ID, requirement.EvidenceType,
+		),
+	}
+	return result, []domain.Finding{finding}
+}
+
 // evaluateRequirement folds every envelope matched by exact evidence type
 // into one requirement result plus its evidence findings, per the design's
 // normalization table: no matches are MISSING, consistent candidates are
@@ -148,22 +171,7 @@ func joinEvidenceIDs(ids []string) string {
 func evaluateRequirement(requirement policy.Requirement, evidence []evidence.Loaded, evaluatedAt time.Time) (domain.RequirementResult, []domain.Finding) {
 	matches := matchEnvelopes(requirement.EvidenceType, evidence)
 	if len(matches) == 0 {
-		return domain.RequirementResult{
-			RequirementID: requirement.ID,
-			EvidenceState: domain.EvidenceMissing,
-			Waivable:      requirement.Waivable,
-			WaiverStatus:  domain.WaiverNotApplicable,
-		}, []domain.Finding{{
-			Code:          "EVIDENCE_MISSING",
-			Category:      domain.FindingCategoryEvidence,
-			Severity:      domain.SeverityError,
-			RequirementID: requirement.ID,
-			Blocking:      true,
-			Message: fmt.Sprintf(
-				"policy requirement %q matched no evidence envelope of type %q",
-				requirement.ID, requirement.EvidenceType,
-			),
-		}}
+		return missingResult(requirement)
 	}
 
 	var candidateIDs, staleRevisionIDs, staleFutureIDs, staleAgeIDs, untrustedIDs []string
