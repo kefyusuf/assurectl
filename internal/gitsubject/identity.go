@@ -16,6 +16,68 @@ var crossTransportHostedProviders = map[string]struct{}{
 	"gitlab.com":    {},
 }
 
+func CanonicalizeRepositoryIdentity(raw string) (string, error) {
+	const localPrefix = "local://sha256/"
+	if strings.HasPrefix(raw, localPrefix) {
+		digest := strings.TrimPrefix(raw, localPrefix)
+		if len(digest) != 64 {
+			return "", fmt.Errorf("local repository identity digest length %d is not 64", len(digest))
+		}
+		for _, char := range digest {
+			if (char < '0' || char > '9') && (char < 'a' || char > 'f') {
+				return "", fmt.Errorf("local repository identity digest must be lowercase hexadecimal")
+			}
+		}
+		return raw, nil
+	}
+
+	const scpIdentityPrefix = "ssh+scp://git@"
+	if strings.HasPrefix(raw, "ssh+scp://") {
+		if !strings.HasPrefix(raw, scpIdentityPrefix) {
+			return "", fmt.Errorf("repository identity SCP username is unsupported")
+		}
+		remainder := strings.TrimPrefix(raw, scpIdentityPrefix)
+		slash := strings.IndexByte(remainder, '/')
+		if slash <= 0 || slash == len(remainder)-1 {
+			return "", fmt.Errorf("repository identity SCP host or path is empty")
+		}
+		host := remainder[:slash]
+		canonical, err := canonicalHostPath(host, remainder[slash+1:])
+		if err != nil {
+			return "", err
+		}
+		if crossTransportIdentityAllowed(host) {
+			return "", fmt.Errorf("repository identity SCP form is not canonical for hosted provider")
+		}
+		identity := scpIdentityPrefix + canonical
+		if identity != raw {
+			return "", fmt.Errorf("repository identity SCP form is not canonical")
+		}
+		return identity, nil
+	}
+
+	if !strings.Contains(raw, "://") && !strings.Contains(raw, "@") {
+		slash := strings.IndexByte(raw, '/')
+		if slash <= 0 || slash == len(raw)-1 {
+			return "", fmt.Errorf("repository identity is neither canonical hosted identity nor supported repository URI")
+		}
+		host := raw[:slash]
+		if !crossTransportIdentityAllowed(host) {
+			return "", fmt.Errorf("repository identity without transport is unsupported for host %q", host)
+		}
+		canonical, err := canonicalHostPath(host, raw[slash+1:])
+		if err != nil {
+			return "", err
+		}
+		if canonical != raw {
+			return "", fmt.Errorf("repository identity hosted form is not canonical")
+		}
+		return canonical, nil
+	}
+
+	return canonicalizeRepositoryURI(raw)
+}
+
 func canonicalizeRepositoryURI(raw string) (string, error) {
 	if raw == "" {
 		return "", fmt.Errorf("repository URI is empty")

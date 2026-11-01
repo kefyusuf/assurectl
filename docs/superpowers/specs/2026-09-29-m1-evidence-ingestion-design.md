@@ -1,6 +1,6 @@
 # M1 Evidence Ingestion and Intrinsic Validation Design
 
-**Status:** Approved for implementation planning  
+**Status:** Implemented in M1 evidence-ingestion slice  
 **Date:** 2026-09-29  
 **Milestone:** M1 — Local advisory evaluation  
 **Base commit:** `85587181f2f18d79c22d8920d823d937cb79634a`  
