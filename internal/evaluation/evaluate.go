@@ -47,12 +47,7 @@ func Evaluate(input Input) (Result, error) {
 
 	requirements := make([]domain.RequirementResult, 0, len(input.Policy.Policy.Requirements))
 	for _, requirement := range input.Policy.Policy.Requirements {
-		requirements = append(requirements, domain.RequirementResult{
-			RequirementID: requirement.ID,
-			EvidenceState: domain.EvidenceMissing,
-			Waivable:      requirement.Waivable,
-			WaiverStatus:  domain.WaiverNotApplicable,
-		})
+		requirements = append(requirements, normalizeRequirement(requirement, input.Evidence, input.EvaluatedAt))
 	}
 	findings := sortFindings(universeFindings(
 		input.Contract.Contract.AcceptanceCriteria,
@@ -134,6 +129,107 @@ func sortFindings(findings []domain.Finding) []domain.Finding {
 
 func joinEvidenceIDs(ids []string) string {
 	return strings.Join(ids, ",")
+}
+
+// normalizeRequirement folds every envelope matched by exact evidence type
+// into one requirement result per the design's normalization table: no
+// matches are MISSING, consistent candidates are VALID with the aggregated
+// outcome, conflicting candidates collapse to INVALID, and stale facts take
+// precedence over untrusted ones.
+func normalizeRequirement(requirement policy.Requirement, evidence []evidence.Loaded, evaluatedAt time.Time) domain.RequirementResult {
+	matches := matchEnvelopes(requirement.EvidenceType, evidence)
+	if len(matches) == 0 {
+		return domain.RequirementResult{
+			RequirementID: requirement.ID,
+			EvidenceState: domain.EvidenceMissing,
+			Waivable:      requirement.Waivable,
+			WaiverStatus:  domain.WaiverNotApplicable,
+		}
+	}
+
+	var candidateIDs, staleIDs, untrustedIDs []string
+	var candidateOutcomes []domain.ObservedOutcome
+	for _, index := range matches {
+		item := evidence[index]
+		switch deriveFact(requirement, item, evaluatedAt) {
+		case factCandidate:
+			candidateIDs = append(candidateIDs, item.Envelope.ID)
+			candidateOutcomes = append(candidateOutcomes, item.Envelope.Outcome.Status)
+		case factStaleRevision, factStaleFuture, factStaleAge:
+			staleIDs = append(staleIDs, item.Envelope.ID)
+		case factUntrustedProducer:
+			untrustedIDs = append(untrustedIDs, item.Envelope.ID)
+		}
+	}
+
+	if len(candidateIDs) > 0 {
+		state, outcome := aggregateCandidates(candidateOutcomes)
+		return domain.RequirementResult{
+			RequirementID: requirement.ID,
+			EvidenceState: state,
+			EvidenceIDs:   sortedCopy(candidateIDs),
+			Outcome:       outcome,
+			Waivable:      requirement.Waivable,
+			WaiverStatus:  domain.WaiverNotApplicable,
+		}
+	}
+	if len(staleIDs) > 0 {
+		return domain.RequirementResult{
+			RequirementID: requirement.ID,
+			EvidenceState: domain.EvidenceStale,
+			EvidenceIDs:   sortedCopy(staleIDs),
+			Waivable:      requirement.Waivable,
+			WaiverStatus:  domain.WaiverNotApplicable,
+		}
+	}
+	return domain.RequirementResult{
+		RequirementID: requirement.ID,
+		EvidenceState: domain.EvidenceUntrusted,
+		EvidenceIDs:   sortedCopy(untrustedIDs),
+		Waivable:      requirement.Waivable,
+		WaiverStatus:  domain.WaiverNotApplicable,
+	}
+}
+
+// aggregateCandidates folds consistent candidate outcomes: any ERROR
+// dominates, otherwise any FAILED establishes failure, and conflicting
+// PASSED/FAILED candidates are internally inconsistent evidence (INVALID).
+func aggregateCandidates(outcomes []domain.ObservedOutcome) (domain.EvidenceState, domain.ObservedOutcome) {
+	anyPassed, anyFailed, anyError := false, false, false
+	for _, outcome := range outcomes {
+		switch outcome {
+		case domain.OutcomePassed:
+			anyPassed = true
+		case domain.OutcomeFailed:
+			anyFailed = true
+		case domain.OutcomeError:
+			anyError = true
+		}
+	}
+	switch {
+	case anyFailed && anyPassed:
+		return domain.EvidenceInvalid, ""
+	case anyError:
+		return domain.EvidenceValid, domain.OutcomeError
+	case anyFailed:
+		return domain.EvidenceValid, domain.OutcomeFailed
+	default:
+		return domain.EvidenceValid, domain.OutcomePassed
+	}
+}
+
+// sortedCopy returns a sorted, deduplicated copy of the evidence IDs.
+func sortedCopy(ids []string) []string {
+	ordered := make([]string, len(ids))
+	copy(ordered, ids)
+	sort.Strings(ordered)
+	deduplicated := ordered[:0]
+	for i, id := range ordered {
+		if i == 0 || ordered[i-1] != id {
+			deduplicated = append(deduplicated, id)
+		}
+	}
+	return deduplicated
 }
 
 func validateInput(input Input) error {
