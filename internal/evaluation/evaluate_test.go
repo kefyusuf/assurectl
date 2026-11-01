@@ -215,6 +215,13 @@ func TestEvaluateSurfacesContractCrossChecks(t *testing.T) {
 				RequirementID: "req-unknown",
 			},
 			findingExpectation{
+				Code:          "EVIDENCE_MISSING",
+				Category:      domain.FindingCategoryEvidence,
+				Severity:      domain.SeverityError,
+				Blocking:      true,
+				RequirementID: "req-a",
+			},
+			findingExpectation{
 				Code:          "POLICY_REQUIREMENT_UNREFERENCED",
 				Category:      domain.FindingCategoryPolicy,
 				Severity:      domain.SeverityInfo,
@@ -241,9 +248,15 @@ func TestEvaluateSurfacesContractCrossChecks(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Evaluate() error = %v", err)
 		}
-		if len(result.Findings) != 0 {
-			t.Fatalf("Findings = %#v, want none", result.Findings)
-		}
+		assertFindings(t, result.Findings,
+			findingExpectation{
+				Code:          "EVIDENCE_MISSING",
+				Category:      domain.FindingCategoryEvidence,
+				Severity:      domain.SeverityError,
+				Blocking:      true,
+				RequirementID: "req-a",
+			},
+		)
 	})
 
 	t.Run("criteria with empty requirement lists produce nothing", func(t *testing.T) {
@@ -259,6 +272,13 @@ func TestEvaluateSurfacesContractCrossChecks(t *testing.T) {
 			t.Fatalf("Evaluate() error = %v", err)
 		}
 		assertFindings(t, result.Findings,
+			findingExpectation{
+				Code:          "EVIDENCE_MISSING",
+				Category:      domain.FindingCategoryEvidence,
+				Severity:      domain.SeverityError,
+				Blocking:      true,
+				RequirementID: "req-a",
+			},
 			findingExpectation{
 				Code:          "POLICY_REQUIREMENT_UNREFERENCED",
 				Category:      domain.FindingCategoryPolicy,

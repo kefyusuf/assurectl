@@ -46,13 +46,16 @@ func Evaluate(input Input) (Result, error) {
 	}
 
 	requirements := make([]domain.RequirementResult, 0, len(input.Policy.Policy.Requirements))
+	requirementFindings := make([]domain.Finding, 0)
 	for _, requirement := range input.Policy.Policy.Requirements {
-		requirements = append(requirements, normalizeRequirement(requirement, input.Evidence, input.EvaluatedAt))
+		result, findings := evaluateRequirement(requirement, input.Evidence, input.EvaluatedAt)
+		requirements = append(requirements, result)
+		requirementFindings = append(requirementFindings, findings...)
 	}
-	findings := sortFindings(universeFindings(
+	findings := sortFindings(append(universeFindings(
 		input.Contract.Contract.AcceptanceCriteria,
 		input.Policy.Policy.Requirements,
-	))
+	), requirementFindings...))
 	return Result{Requirements: requirements, Findings: findings}, nil
 }
 
@@ -131,12 +134,12 @@ func joinEvidenceIDs(ids []string) string {
 	return strings.Join(ids, ",")
 }
 
-// normalizeRequirement folds every envelope matched by exact evidence type
-// into one requirement result per the design's normalization table: no
-// matches are MISSING, consistent candidates are VALID with the aggregated
-// outcome, conflicting candidates collapse to INVALID, and stale facts take
-// precedence over untrusted ones.
-func normalizeRequirement(requirement policy.Requirement, evidence []evidence.Loaded, evaluatedAt time.Time) domain.RequirementResult {
+// evaluateRequirement folds every envelope matched by exact evidence type
+// into one requirement result plus its evidence findings, per the design's
+// normalization table: no matches are MISSING, consistent candidates are
+// VALID with the aggregated outcome, conflicting candidates collapse to
+// INVALID, and stale facts take precedence over untrusted ones.
+func evaluateRequirement(requirement policy.Requirement, evidence []evidence.Loaded, evaluatedAt time.Time) (domain.RequirementResult, []domain.Finding) {
 	matches := matchEnvelopes(requirement.EvidenceType, evidence)
 	if len(matches) == 0 {
 		return domain.RequirementResult{
@@ -144,10 +147,20 @@ func normalizeRequirement(requirement policy.Requirement, evidence []evidence.Lo
 			EvidenceState: domain.EvidenceMissing,
 			Waivable:      requirement.Waivable,
 			WaiverStatus:  domain.WaiverNotApplicable,
-		}
+		}, []domain.Finding{{
+			Code:          "EVIDENCE_MISSING",
+			Category:      domain.FindingCategoryEvidence,
+			Severity:      domain.SeverityError,
+			RequirementID: requirement.ID,
+			Blocking:      true,
+			Message: fmt.Sprintf(
+				"policy requirement %q matched no evidence envelope of type %q",
+				requirement.ID, requirement.EvidenceType,
+			),
+		}}
 	}
 
-	var candidateIDs, staleIDs, untrustedIDs []string
+	var candidateIDs, staleRevisionIDs, staleFutureIDs, staleAgeIDs, untrustedIDs []string
 	var candidateOutcomes []domain.ObservedOutcome
 	for _, index := range matches {
 		item := evidence[index]
@@ -155,15 +168,39 @@ func normalizeRequirement(requirement policy.Requirement, evidence []evidence.Lo
 		case factCandidate:
 			candidateIDs = append(candidateIDs, item.Envelope.ID)
 			candidateOutcomes = append(candidateOutcomes, item.Envelope.Outcome.Status)
-		case factStaleRevision, factStaleFuture, factStaleAge:
-			staleIDs = append(staleIDs, item.Envelope.ID)
+		case factStaleRevision:
+			staleRevisionIDs = append(staleRevisionIDs, item.Envelope.ID)
+		case factStaleFuture:
+			staleFutureIDs = append(staleFutureIDs, item.Envelope.ID)
+		case factStaleAge:
+			staleAgeIDs = append(staleAgeIDs, item.Envelope.ID)
 		case factUntrustedProducer:
 			untrustedIDs = append(untrustedIDs, item.Envelope.ID)
 		}
 	}
 
+	findings := make([]domain.Finding, 0)
+	findings = appendFactFindings(findings, "EVIDENCE_STALE_REVISION", requirement.ID, staleRevisionIDs)
+	findings = appendFactFindings(findings, "EVIDENCE_STALE_FUTURE", requirement.ID, staleFutureIDs)
+	findings = appendFactFindings(findings, "EVIDENCE_STALE_AGE", requirement.ID, staleAgeIDs)
+	findings = appendFactFindings(findings, "EVIDENCE_UNTRUSTED_PRODUCER", requirement.ID, untrustedIDs)
+
 	if len(candidateIDs) > 0 {
 		state, outcome := aggregateCandidates(candidateOutcomes)
+		if state == domain.EvidenceInvalid {
+			findings = append(findings, domain.Finding{
+				Code:          "EVIDENCE_CONFLICT",
+				Category:      domain.FindingCategoryEvidence,
+				Severity:      domain.SeverityError,
+				RequirementID: requirement.ID,
+				EvidenceIDs:   sortedCopy(candidateIDs),
+				Blocking:      true,
+				Message: fmt.Sprintf(
+					"policy requirement %q has conflicting candidate outcomes across evidence %s",
+					requirement.ID, joinEvidenceIDs(sortedCopy(candidateIDs)),
+				),
+			})
+		}
 		return domain.RequirementResult{
 			RequirementID: requirement.ID,
 			EvidenceState: state,
@@ -171,8 +208,13 @@ func normalizeRequirement(requirement policy.Requirement, evidence []evidence.Lo
 			Outcome:       outcome,
 			Waivable:      requirement.Waivable,
 			WaiverStatus:  domain.WaiverNotApplicable,
-		}
+		}, findings
 	}
+
+	staleIDs := make([]string, 0, len(staleRevisionIDs)+len(staleFutureIDs)+len(staleAgeIDs))
+	staleIDs = append(staleIDs, staleRevisionIDs...)
+	staleIDs = append(staleIDs, staleFutureIDs...)
+	staleIDs = append(staleIDs, staleAgeIDs...)
 	if len(staleIDs) > 0 {
 		return domain.RequirementResult{
 			RequirementID: requirement.ID,
@@ -180,7 +222,7 @@ func normalizeRequirement(requirement policy.Requirement, evidence []evidence.Lo
 			EvidenceIDs:   sortedCopy(staleIDs),
 			Waivable:      requirement.Waivable,
 			WaiverStatus:  domain.WaiverNotApplicable,
-		}
+		}, findings
 	}
 	return domain.RequirementResult{
 		RequirementID: requirement.ID,
@@ -188,6 +230,38 @@ func normalizeRequirement(requirement policy.Requirement, evidence []evidence.Lo
 		EvidenceIDs:   sortedCopy(untrustedIDs),
 		Waivable:      requirement.Waivable,
 		WaiverStatus:  domain.WaiverNotApplicable,
+	}, findings
+}
+
+// appendFactFindings emits one finding per stale or untrusted envelope.
+func appendFactFindings(findings []domain.Finding, code, requirementID string, envelopeIDs []string) []domain.Finding {
+	for _, envelopeID := range envelopeIDs {
+		findings = append(findings, domain.Finding{
+			Code:          code,
+			Category:      domain.FindingCategoryEvidence,
+			Severity:      domain.SeverityError,
+			RequirementID: requirementID,
+			EvidenceIDs:   []string{envelopeID},
+			Blocking:      true,
+			Message: fmt.Sprintf(
+				"policy requirement %q: %s for evidence %q",
+				requirementID, factFindingDescription(code), envelopeID,
+			),
+		})
+	}
+	return findings
+}
+
+func factFindingDescription(code string) string {
+	switch code {
+	case "EVIDENCE_STALE_REVISION":
+		return "evidence belongs to another revision"
+	case "EVIDENCE_STALE_FUTURE":
+		return "evidence finishes after the evaluation instant"
+	case "EVIDENCE_STALE_AGE":
+		return "evidence exceeds the policy age limit"
+	default:
+		return "evidence producer type is not permitted by policy"
 	}
 }
 
