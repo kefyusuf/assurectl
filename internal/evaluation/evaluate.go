@@ -2,6 +2,7 @@ package evaluation
 
 import (
 	"fmt"
+	"math/big"
 	"regexp"
 	"sort"
 	"strings"
@@ -220,4 +221,55 @@ func matchEnvelopes(evidenceType string, evidence []evidence.Loaded) []int {
 		}
 	}
 	return matches
+}
+
+// envelopeFact is the per-envelope evaluation fact the design defines for one
+// matched evidence entry and one requirement. First match wins; the order of
+// the checks below is the documented precedence.
+type envelopeFact string
+
+const (
+	factCandidate         envelopeFact = "CANDIDATE"
+	factStaleRevision     envelopeFact = "STALE_REVISION"
+	factStaleFuture       envelopeFact = "STALE_FUTURE"
+	factStaleAge          envelopeFact = "STALE_AGE"
+	factUntrustedProducer envelopeFact = "UNTRUSTED_PRODUCER"
+)
+
+// deriveFact classifies one matched envelope against one requirement using
+// only ingestion-established facts and the explicit evaluation instant.
+func deriveFact(requirement policy.Requirement, item evidence.Loaded, evaluatedAt time.Time) envelopeFact {
+	if item.SubjectBinding == evidence.SubjectBindingOtherRevision {
+		return factStaleRevision
+	}
+	if item.FinishedAt.After(evaluatedAt) {
+		return factStaleFuture
+	}
+	if requirement.MaxAgeSeconds != nil && exceedsMaxAge(requirement.MaxAgeSeconds, evaluatedAt.Sub(item.FinishedAt)) {
+		return factStaleAge
+	}
+	if !allowsProducer(requirement.AllowedProducerTypes, item.Envelope.Producer.Type) {
+		return factUntrustedProducer
+	}
+	return factCandidate
+}
+
+// exceedsMaxAge compares the observation age against the policy bound with
+// exact nanosecond arithmetic; bounds beyond int64 seconds simply never
+// expire within representable durations.
+func exceedsMaxAge(limit *big.Int, age time.Duration) bool {
+	ageNanos := new(big.Int).SetInt64(age.Nanoseconds())
+	limitNanos := new(big.Int).Mul(limit, big.NewInt(int64(time.Second)))
+	return ageNanos.Cmp(limitNanos) > 0
+}
+
+// allowsProducer requires an explicit allowlist hit; an empty list permits
+// no producer type (fail closed).
+func allowsProducer(allowed []string, producerType string) bool {
+	for _, candidate := range allowed {
+		if candidate == producerType {
+			return true
+		}
+	}
+	return false
 }

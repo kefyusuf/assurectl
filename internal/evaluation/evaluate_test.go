@@ -1,6 +1,7 @@
 package evaluation
 
 import (
+	"math/big"
 	"testing"
 	"time"
 
@@ -228,8 +229,8 @@ func TestEvaluateSurfacesContractCrossChecks(t *testing.T) {
 
 		input := Input{
 			Contract: advisoryContract(contract.AcceptanceCriterion{
-				ID:          "crit-a",
-				Statement:   "the change is verified",
+				ID:           "crit-a",
+				Statement:    "the change is verified",
 				Requirements: []string{"req-a"},
 			}),
 			Policy:      advisoryPolicy(policyRequirement("req-a", "test-result")),
@@ -349,4 +350,106 @@ func TestMatchEnvelopes(t *testing.T) {
 			t.Fatalf("matches = %v, %v; want the same envelope for both requirements", first, second)
 		}
 	})
+}
+
+func evidenceEntry(id, envelopeType, producerType string, binding evidence.SubjectBinding, finishedAt time.Time) evidence.Loaded {
+	return evidence.Loaded{
+		Envelope: evidence.Envelope{
+			ID:       id,
+			Type:     envelopeType,
+			Producer: evidence.Producer{Type: producerType},
+		},
+		FinishedAt:     finishedAt,
+		SubjectBinding: binding,
+	}
+}
+
+func TestDeriveFact(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		mutate   func(*policy.Requirement)
+		build    func() evidence.Loaded
+		wantFact envelopeFact
+	}{
+		{
+			name:   "exact binding allowed producer fresh age",
+			mutate: func(*policy.Requirement) {},
+			build: func() evidence.Loaded {
+				return evidenceEntry("ev-a", "test-result", "local-user", evidence.SubjectBindingExact, evaluationInstant.Add(-time.Minute))
+			},
+			wantFact: factCandidate,
+		},
+		{
+			name:   "other revision binds stale regardless of everything else",
+			mutate: func(*policy.Requirement) {},
+			build: func() evidence.Loaded {
+				return evidenceEntry("ev-a", "test-result", "disallowed", evidence.SubjectBindingOtherRevision, evaluationInstant.Add(time.Hour))
+			},
+			wantFact: factStaleRevision,
+		},
+		{
+			name:   "finished after evaluation instant is stale future",
+			mutate: func(*policy.Requirement) {},
+			build: func() evidence.Loaded {
+				return evidenceEntry("ev-a", "test-result", "local-user", evidence.SubjectBindingExact, evaluationInstant.Add(time.Nanosecond))
+			},
+			wantFact: factStaleFuture,
+		},
+		{
+			name:   "age exactly at the limit stays candidate",
+			mutate: func(requirement *policy.Requirement) { requirement.MaxAgeSeconds = big.NewInt(60) },
+			build: func() evidence.Loaded {
+				return evidenceEntry("ev-a", "test-result", "local-user", evidence.SubjectBindingExact, evaluationInstant.Add(-60*time.Second))
+			},
+			wantFact: factCandidate,
+		},
+		{
+			name:   "age one nanosecond beyond the limit is stale age",
+			mutate: func(requirement *policy.Requirement) { requirement.MaxAgeSeconds = big.NewInt(60) },
+			build: func() evidence.Loaded {
+				return evidenceEntry("ev-a", "test-result", "local-user", evidence.SubjectBindingExact, evaluationInstant.Add(-60*time.Second).Add(-time.Nanosecond))
+			},
+			wantFact: factStaleAge,
+		},
+		{
+			name:   "no age limit never goes stale by age",
+			mutate: func(requirement *policy.Requirement) { requirement.MaxAgeSeconds = nil },
+			build: func() evidence.Loaded {
+				return evidenceEntry("ev-a", "test-result", "local-user", evidence.SubjectBindingExact, evaluationInstant.Add(-365*24*time.Hour))
+			},
+			wantFact: factCandidate,
+		},
+		{
+			name:   "empty allowlist permits no producer",
+			mutate: func(requirement *policy.Requirement) { requirement.AllowedProducerTypes = nil },
+			build: func() evidence.Loaded {
+				return evidenceEntry("ev-a", "test-result", "local-user", evidence.SubjectBindingExact, evaluationInstant.Add(-time.Minute))
+			},
+			wantFact: factUntrustedProducer,
+		},
+		{
+			name:   "disallowed producer type is untrusted",
+			mutate: func(*policy.Requirement) {},
+			build: func() evidence.Loaded {
+				return evidenceEntry("ev-a", "test-result", "ci-runner", evidence.SubjectBindingExact, evaluationInstant.Add(-time.Minute))
+			},
+			wantFact: factUntrustedProducer,
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			requirement := policyRequirement("req-a", "test-result")
+			tt.mutate(&requirement)
+			entry := tt.build()
+			if got := deriveFact(requirement, entry, evaluationInstant); got != tt.wantFact {
+				t.Fatalf("deriveFact() = %q, want %q", got, tt.wantFact)
+			}
+		})
+	}
 }
