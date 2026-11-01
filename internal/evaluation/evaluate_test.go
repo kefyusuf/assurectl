@@ -6,6 +6,7 @@ import (
 
 	"github.com/kefyusuf/assurectl/internal/contract"
 	"github.com/kefyusuf/assurectl/internal/domain"
+	"github.com/kefyusuf/assurectl/internal/evidence"
 	"github.com/kefyusuf/assurectl/internal/inputmeta"
 	"github.com/kefyusuf/assurectl/internal/policy"
 )
@@ -180,4 +181,172 @@ func TestEvaluateAcceptsMinimalInput(t *testing.T) {
 	if requirement.WaiverStatus != domain.WaiverNotApplicable {
 		t.Fatalf("WaiverStatus = %q, want NOT_APPLICABLE", requirement.WaiverStatus)
 	}
+}
+
+func TestEvaluateSurfacesContractCrossChecks(t *testing.T) {
+	t.Parallel()
+
+	t.Run("unknown criterion reference blocks without dropping requirements", func(t *testing.T) {
+		t.Parallel()
+
+		input := validInput()
+		input.Contract.Contract.AcceptanceCriteria = []contract.AcceptanceCriterion{
+			{ID: "crit-a", Statement: "the change is verified", Requirements: []string{"req-unknown"}},
+		}
+
+		result, err := Evaluate(input)
+		if err != nil {
+			t.Fatalf("Evaluate() error = %v", err)
+		}
+		if len(result.Requirements) != 1 || result.Requirements[0].RequirementID != "req-a" {
+			t.Fatalf("Requirements = %#v, want req-a still evaluated", result.Requirements)
+		}
+		if result.Requirements[0].EvidenceState != domain.EvidenceMissing {
+			t.Fatalf("EvidenceState = %q, want MISSING", result.Requirements[0].EvidenceState)
+		}
+
+		assertFindings(t, result.Findings,
+			findingExpectation{
+				Code:          "CONTRACT_UNKNOWN_REQUIREMENT",
+				Category:      domain.FindingCategoryContract,
+				Severity:      domain.SeverityError,
+				Blocking:      true,
+				RequirementID: "req-unknown",
+			},
+			findingExpectation{
+				Code:          "POLICY_REQUIREMENT_UNREFERENCED",
+				Category:      domain.FindingCategoryPolicy,
+				Severity:      domain.SeverityInfo,
+				Blocking:      false,
+				RequirementID: "req-a",
+			},
+		)
+	})
+
+	t.Run("referenced requirement produces no unreferenced finding", func(t *testing.T) {
+		t.Parallel()
+
+		input := Input{
+			Contract: advisoryContract(contract.AcceptanceCriterion{
+				ID:          "crit-a",
+				Statement:   "the change is verified",
+				Requirements: []string{"req-a"},
+			}),
+			Policy:      advisoryPolicy(policyRequirement("req-a", "test-result")),
+			EvaluatedAt: evaluationInstant,
+		}
+
+		result, err := Evaluate(input)
+		if err != nil {
+			t.Fatalf("Evaluate() error = %v", err)
+		}
+		if len(result.Findings) != 0 {
+			t.Fatalf("Findings = %#v, want none", result.Findings)
+		}
+	})
+
+	t.Run("criteria with empty requirement lists produce nothing", func(t *testing.T) {
+		t.Parallel()
+
+		input := validInput()
+		input.Contract.Contract.AcceptanceCriteria = []contract.AcceptanceCriterion{
+			{ID: "crit-a", Statement: "manually verified", Requirements: nil},
+		}
+
+		result, err := Evaluate(input)
+		if err != nil {
+			t.Fatalf("Evaluate() error = %v", err)
+		}
+		assertFindings(t, result.Findings,
+			findingExpectation{
+				Code:          "POLICY_REQUIREMENT_UNREFERENCED",
+				Category:      domain.FindingCategoryPolicy,
+				Severity:      domain.SeverityInfo,
+				Blocking:      false,
+				RequirementID: "req-a",
+			},
+		)
+	})
+}
+
+type findingExpectation struct {
+	Code          string
+	Category      domain.FindingCategory
+	Severity      domain.FindingSeverity
+	Blocking      bool
+	RequirementID string
+}
+
+// assertFindings requires findings to match the expectations exactly, in order.
+func assertFindings(t *testing.T, findings []domain.Finding, expected ...findingExpectation) {
+	t.Helper()
+
+	if len(findings) != len(expected) {
+		t.Fatalf("Findings = %#v, want %d entries", findings, len(expected))
+	}
+	for i := range expected {
+		got := findings[i]
+		want := expected[i]
+		if got.Code != want.Code ||
+			got.Category != want.Category ||
+			got.Severity != want.Severity ||
+			got.Blocking != want.Blocking ||
+			got.RequirementID != want.RequirementID {
+			t.Fatalf("Findings[%d] = (code=%q category=%q severity=%q blocking=%t requirement=%q), want (code=%q category=%q severity=%q blocking=%t requirement=%q)",
+				i, got.Code, got.Category, got.Severity, got.Blocking, got.RequirementID,
+				want.Code, want.Category, want.Severity, want.Blocking, want.RequirementID)
+		}
+	}
+}
+
+func TestMatchEnvelopes(t *testing.T) {
+	t.Parallel()
+
+	envelopes := []evidence.Loaded{
+		{Envelope: evidence.Envelope{ID: "ev-a", Type: "test-result"}},
+		{Envelope: evidence.Envelope{ID: "ev-case", Type: "Test-Result"}},
+		{Envelope: evidence.Envelope{ID: "ev-lint", Type: "lint-result"}},
+	}
+
+	tests := []struct {
+		name         string
+		evidenceType string
+		want         []string
+	}{
+		{name: "exact match", evidenceType: "test-result", want: []string{"ev-a"}},
+		{name: "no case folding", evidenceType: "Test-Result", want: []string{"ev-case"}},
+		{name: "no cross type leakage", evidenceType: "lint-result", want: []string{"ev-lint"}},
+		{name: "no match", evidenceType: "deploy-result", want: nil},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			matches := matchEnvelopes(tt.evidenceType, envelopes)
+			ids := make([]string, 0, len(matches))
+			for _, index := range matches {
+				ids = append(ids, envelopes[index].Envelope.ID)
+			}
+			if len(ids) != len(tt.want) {
+				t.Fatalf("matched = %v, want %v", ids, tt.want)
+			}
+			for i := range tt.want {
+				if ids[i] != tt.want[i] {
+					t.Fatalf("matched = %v, want %v", ids, tt.want)
+				}
+			}
+		})
+	}
+
+	t.Run("one envelope satisfies two same type requirements", func(t *testing.T) {
+		t.Parallel()
+
+		first := matchEnvelopes("test-result", envelopes)
+		second := matchEnvelopes("test-result", envelopes)
+		if len(first) != 1 || len(second) != 1 || first[0] != second[0] {
+			t.Fatalf("matches = %v, %v; want the same envelope for both requirements", first, second)
+		}
+	})
 }

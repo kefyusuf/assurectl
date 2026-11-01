@@ -3,6 +3,8 @@ package evaluation
 import (
 	"fmt"
 	"regexp"
+	"sort"
+	"strings"
 	"time"
 
 	"github.com/kefyusuf/assurectl/internal/contract"
@@ -51,7 +53,86 @@ func Evaluate(input Input) (Result, error) {
 			WaiverStatus:  domain.WaiverNotApplicable,
 		})
 	}
-	return Result{Requirements: requirements}, nil
+	findings := sortFindings(universeFindings(
+		input.Contract.Contract.AcceptanceCriteria,
+		input.Policy.Policy.Requirements,
+	))
+	return Result{Requirements: requirements, Findings: findings}, nil
+}
+
+// universeFindings cross-checks the contract's acceptance criteria against
+// policy requirements per the design: an unknown reference is a blocking
+// contract finding, an unreferenced requirement is an info finding, and
+// neither drops a requirement from evaluation.
+func universeFindings(criteria []contract.AcceptanceCriterion, requirements []policy.Requirement) []domain.Finding {
+	known := make(map[string]struct{}, len(requirements))
+	for _, requirement := range requirements {
+		known[requirement.ID] = struct{}{}
+	}
+	referenced := make(map[string]struct{}, len(criteria))
+
+	findings := make([]domain.Finding, 0)
+	seenUnknown := make(map[string]struct{})
+	for _, criterion := range criteria {
+		for _, reference := range criterion.Requirements {
+			if _, isKnown := known[reference]; isKnown {
+				referenced[reference] = struct{}{}
+				continue
+			}
+			if _, duplicate := seenUnknown[reference]; duplicate {
+				continue
+			}
+			seenUnknown[reference] = struct{}{}
+			findings = append(findings, domain.Finding{
+				Code:          "CONTRACT_UNKNOWN_REQUIREMENT",
+				Category:      domain.FindingCategoryContract,
+				Severity:      domain.SeverityError,
+				RequirementID: reference,
+				Blocking:      true,
+				Message: fmt.Sprintf(
+					"acceptance criterion %q references requirement %q that policy does not define",
+					criterion.ID, reference,
+				),
+			})
+		}
+	}
+
+	for _, requirement := range requirements {
+		if _, isReferenced := referenced[requirement.ID]; isReferenced {
+			continue
+		}
+		findings = append(findings, domain.Finding{
+			Code:          "POLICY_REQUIREMENT_UNREFERENCED",
+			Category:      domain.FindingCategoryPolicy,
+			Severity:      domain.SeverityInfo,
+			RequirementID: requirement.ID,
+			Blocking:      false,
+			Message:       fmt.Sprintf("policy requirement %q is referenced by no acceptance criterion", requirement.ID),
+		})
+	}
+	return findings
+}
+
+// sortFindings orders findings deterministically by code, requirement ID,
+// then joined evidence IDs, so output is stable across runs.
+func sortFindings(findings []domain.Finding) []domain.Finding {
+	ordered := make([]domain.Finding, len(findings))
+	copy(ordered, findings)
+	sort.SliceStable(ordered, func(i, j int) bool {
+		left, right := ordered[i], ordered[j]
+		if left.Code != right.Code {
+			return left.Code < right.Code
+		}
+		if left.RequirementID != right.RequirementID {
+			return left.RequirementID < right.RequirementID
+		}
+		return joinEvidenceIDs(left.EvidenceIDs) < joinEvidenceIDs(right.EvidenceIDs)
+	})
+	return ordered
+}
+
+func joinEvidenceIDs(ids []string) string {
+	return strings.Join(ids, ",")
 }
 
 func validateInput(input Input) error {
@@ -126,4 +207,17 @@ func validateDigest(digest inputmeta.Digest) error {
 		return fmt.Errorf("value %q is invalid", digest.Value)
 	}
 	return nil
+}
+
+// matchEnvelopes returns the indexes of evidence entries whose envelope type
+// equals evidenceType by exact, case-sensitive string comparison, preserving
+// ingestion order.
+func matchEnvelopes(evidenceType string, evidence []evidence.Loaded) []int {
+	matches := make([]int, 0)
+	for i, item := range evidence {
+		if item.Envelope.Type == evidenceType {
+			matches = append(matches, i)
+		}
+	}
+	return matches
 }
