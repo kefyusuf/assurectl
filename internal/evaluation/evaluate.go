@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/kefyusuf/assurectl/internal/contract"
+	"github.com/kefyusuf/assurectl/internal/decision"
 	"github.com/kefyusuf/assurectl/internal/domain"
 	"github.com/kefyusuf/assurectl/internal/evidence"
 	"github.com/kefyusuf/assurectl/internal/inputmeta"
@@ -56,7 +57,12 @@ func Evaluate(input Input) (Result, error) {
 		input.Contract.Contract.AcceptanceCriteria,
 		input.Policy.Policy.Requirements,
 	), requirementFindings...))
-	return Result{Requirements: requirements, Findings: findings}, nil
+
+	verdict, err := decision.Evaluate(requirements, findings...)
+	if err != nil {
+		return Result{}, fmt.Errorf("evaluate: kernel rejected normalized results: %w", err)
+	}
+	return Result{Requirements: requirements, Findings: findings, Verdict: verdict}, nil
 }
 
 // universeFindings cross-checks the contract's acceptance criteria against
