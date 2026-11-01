@@ -73,7 +73,7 @@
 - Produces: `func localinput.OpenWorkspaceRegularFile(root, relativePath string) (*os.File, error)`
 - Preserves: `func localinput.ReadWorkspaceFile(root, relativePath string) ([]byte, error)`, including `MaxWorkspaceInputBytes == 1 << 20`
 
-- [ ] **Step 1: Write failing tests for the exported repository canonicalization seam**
+- [x] **Step 1: Write failing tests for the exported repository canonicalization seam**
 
 In `internal/gitsubject/identity_test.go`, add a test that calls `CanonicalizeRepositoryIdentity` directly and proves at least:
 - raw `https://github.com/acme/repo.git` → `github.com/acme/repo`;
@@ -88,7 +88,7 @@ In `internal/gitsubject/identity_test.go`, add a test that calls `CanonicalizeRe
 
 Also retain/add a regression that `Resolve`'s explicit repository-URI path does **not** begin accepting caller-supplied `local://` values.
 
-- [ ] **Step 2: Run the focused Git subject test and observe RED**
+- [x] **Step 2: Run the focused Git subject test and observe RED**
 
 Run:
 
@@ -98,7 +98,7 @@ go test ./internal/gitsubject -run 'TestCanonicalizeRepositoryIdentity|TestCanon
 
 Expected: FAIL to compile because `CanonicalizeRepositoryIdentity` does not exist.
 
-- [ ] **Step 3: Expose the existing canonicalizer without changing its rules**
+- [x] **Step 3: Expose the existing canonicalizer without changing its rules**
 
 Add:
 
@@ -108,7 +108,7 @@ func CanonicalizeRepositoryIdentity(raw string) (string, error)
 
 The function must accept both raw supported repository forms and the canonical identities the resolver itself can emit. Handle canonical `local://sha256/<64 lowercase hex>`, allowlisted hosted `host/path`, and canonical self-hosted outputs including `ssh+scp://git@...`; delegate ordinary raw HTTP/HTTPS/SSH/SCP inputs to the existing private URI canonicalizer. Keep `Resolve`'s explicit/origin input path on the existing private URI rules so this comparison seam does not make `local://` or `ssh+scp://` newly user-selectable origin syntax. Do not introduce a new package, interface, provider registry, or alternate identity model.
 
-- [ ] **Step 4: Run Git subject tests GREEN**
+- [x] **Step 4: Run Git subject tests GREEN**
 
 Run:
 
@@ -118,7 +118,7 @@ go test ./internal/gitsubject
 
 Expected: PASS.
 
-- [ ] **Step 5: Write failing tests for a reusable workspace-bounded regular-file opener**
+- [x] **Step 5: Write failing tests for a reusable workspace-bounded regular-file opener**
 
 Create `internal/localinput/read_test.go` with `TestOpenWorkspaceRegularFile` covering:
 - normal regular file under root opens successfully;
@@ -128,7 +128,7 @@ Create `internal/localinput/read_test.go` with `TestOpenWorkspaceRegularFile` co
 
 Add a regression in the same file proving `ReadWorkspaceFile` still rejects a file larger than `MaxWorkspaceInputBytes`.
 
-- [ ] **Step 6: Run the focused localinput test and observe RED**
+- [x] **Step 6: Run the focused localinput test and observe RED**
 
 Run:
 
@@ -138,7 +138,7 @@ go test ./internal/localinput -run 'TestOpenWorkspaceRegularFile|TestReadWorkspa
 
 Expected: FAIL to compile because `OpenWorkspaceRegularFile` does not exist.
 
-- [ ] **Step 7: Extract the minimal opener**
+- [x] **Step 7: Extract the minimal opener**
 
 Implement:
 
@@ -150,7 +150,7 @@ using the existing root/path normalization, symlink-containment, and regular-fil
 
 Do not add an artifact-size limit to the opener.
 
-- [ ] **Step 8: Run supporting-package tests GREEN**
+- [x] **Step 8: Run supporting-package tests GREEN**
 
 Run:
 
@@ -160,7 +160,7 @@ go test ./internal/gitsubject ./internal/localinput ./internal/contract ./intern
 
 Expected: PASS with contract/policy behavior unchanged.
 
-- [ ] **Step 9: Commit Task 1**
+- [x] **Step 9: Commit Task 1**
 
 ```bash
 git add internal/gitsubject/identity.go internal/gitsubject/identity_test.go internal/localinput/read.go internal/localinput/read_test.go
@@ -192,7 +192,7 @@ The normalized typed model uses pointers for optional values:
 
 However, pointers alone do **not** distinguish an omitted JSON field from an explicit `null`. Therefore strict decoding must first target private raw DTOs whose optional fields are `json.RawMessage`, then normalize them into the typed pointers only after presence/type validation. For optional nested objects such as `environment_digest`, run `strictjson.Decode` again on the raw object so duplicate/unknown nested keys remain fail-closed.
 
-- [ ] **Step 1: Write RED tests for one valid envelope and canonical digest**
+- [x] **Step 1: Write RED tests for one valid envelope and canonical digest**
 
 Add `TestDecodeEnvelopeReturnsTypedValueTimesAndCanonicalDigest` using the existing v0 example shape. Assert:
 - schema/id/type values;
@@ -201,7 +201,7 @@ Add `TestDecodeEnvelopeReturnsTypedValueTimesAndCanonicalDigest` using the exist
 - environment/artifact digests remain `sha256`;
 - semantically identical JSON differing only in whitespace/object-key order produces the same envelope digest.
 
-- [ ] **Step 2: Run the focused test and observe RED**
+- [x] **Step 2: Run the focused test and observe RED**
 
 Run:
 
@@ -211,17 +211,17 @@ go test ./internal/evidence -run 'TestDecodeEnvelopeReturnsTypedValueTimesAndCan
 
 Expected: FAIL because the package/functions do not exist.
 
-- [ ] **Step 3: Implement the typed model and strict decode skeleton**
+- [x] **Step 3: Implement the typed model and strict decode skeleton**
 
 Implement the exact v0 typed field structure plus private raw DTOs. Decode the top-level document through `strictjson.Decode` into the raw DTO, normalize presence-sensitive optional `json.RawMessage` fields into the typed model, validate `schema_version`, then compute envelope digest only after all intrinsic validation in this task succeeds.
 
 Do not add filesystem, subject, policy, trust, or final evidence-state behavior.
 
-- [ ] **Step 4: Run the valid-envelope test GREEN**
+- [x] **Step 4: Run the valid-envelope test GREEN**
 
 Run the same command. Expected: PASS.
 
-- [ ] **Step 5: Add RED table tests for malformed/ambiguous envelope content**
+- [x] **Step 5: Add RED table tests for malformed/ambiguous envelope content**
 
 Add `TestDecodeEnvelopeRejectsMalformedV0Input` covering:
 - unsupported schema version;
@@ -243,7 +243,7 @@ Add `TestDecodeEnvelopeRejectsMalformedV0Input` covering:
 - malformed optional environment digest;
 - explicit `null` for `invocation.environment_digest`.
 
-- [ ] **Step 6: Observe RED for semantic validation**
+- [x] **Step 6: Observe RED for semantic validation**
 
 Run:
 
@@ -253,7 +253,7 @@ go test ./internal/evidence -run 'TestDecodeEnvelopeRejectsMalformedV0Input'
 
 Expected: FAIL on the first not-yet-enforced semantic case, not on test-fixture construction.
 
-- [ ] **Step 7: Implement minimal schema-aligned validators**
+- [x] **Step 7: Implement minimal schema-aligned validators**
 
 Implement only constraints already present in the current schema/protocol:
 - identifier regex;
@@ -267,7 +267,7 @@ Implement only constraints already present in the current schema/protocol:
 
 Do not invent `PASSED => exit_code == 0` or any other cross-field rule absent from the protocol.
 
-- [ ] **Step 8: Add RED tests for JSON Schema integer semantics of `exit_code`**
+- [x] **Step 8: Add RED tests for JSON Schema integer semantics of `exit_code`**
 
 Add `TestDecodeEnvelopeNormalizesJSONSchemaIntegerExitCode` asserting:
 - `1000`, `1000.0`, and `1e3` normalize to equal `big.Int(1000)`;
@@ -277,7 +277,7 @@ Add `TestDecodeEnvelopeNormalizesJSONSchemaIntegerExitCode` asserting:
 - explicit `null` is rejected if present;
 - omission yields `nil`.
 
-- [ ] **Step 9: Observe RED for exponent/large integer cases**
+- [x] **Step 9: Observe RED for exponent/large integer cases**
 
 Run:
 
@@ -287,11 +287,11 @@ go test ./internal/evidence -run 'TestDecodeEnvelopeNormalizesJSONSchemaIntegerE
 
 Expected: FAIL until mathematical-integer normalization is implemented.
 
-- [ ] **Step 10: Implement presence-sensitive integer normalization**
+- [x] **Step 10: Implement presence-sensitive integer normalization**
 
 Parse the raw JSON number through standard-library arbitrary precision (for example `big.Rat`), require `IsInt()`, and store the normalized signed value in `*big.Int`. Invalid JSON syntax is already rejected by strict decoding; do not add a numeric bound the schema does not define.
 
-- [ ] **Step 11: Run Task 2 tests GREEN**
+- [x] **Step 11: Run Task 2 tests GREEN**
 
 Run:
 
@@ -301,7 +301,7 @@ go test ./internal/evidence
 
 Expected: PASS.
 
-- [ ] **Step 12: Commit Task 2**
+- [x] **Step 12: Commit Task 2**
 
 ```bash
 git add internal/evidence/model.go internal/evidence/loader.go internal/evidence/loader_test.go
@@ -325,7 +325,7 @@ git commit -m "feat: decode strict evidence envelopes"
 - Fixed evidence root: `.assurectl/evidence`
 - Source form: `workspace:.assurectl/evidence/<filename>`
 
-- [ ] **Step 1: Write RED discovery tests**
+- [x] **Step 1: Write RED discovery tests**
 
 Add tests proving:
 - missing `.assurectl/evidence/` returns an empty candidate slice and nil error;
@@ -335,7 +335,7 @@ Add tests proving:
 - candidates are returned in lexicographic canonical filename order;
 - source strings use forward slashes and the fixed `workspace:.assurectl/evidence/` prefix.
 
-- [ ] **Step 2: Run focused discovery tests and observe RED**
+- [x] **Step 2: Run focused discovery tests and observe RED**
 
 Run:
 
@@ -345,7 +345,7 @@ go test ./internal/evidence -run 'TestDiscoverLocal'
 
 Expected: FAIL because `discoverLocal` does not exist.
 
-- [ ] **Step 3: Implement non-recursive deterministic discovery**
+- [x] **Step 3: Implement non-recursive deterministic discovery**
 
 Resolve the workspace root and logical evidence root fail-closed. Treat only a genuinely missing evidence directory as empty input. If the evidence root exists, require it to resolve inside the workspace and be a directory.
 
@@ -353,7 +353,7 @@ Use `os.ReadDir`, identify direct regular `*.json` candidates, sort by canonical
 
 Do not recursively walk.
 
-- [ ] **Step 4: Add RED security regressions for the evidence root**
+- [x] **Step 4: Add RED security regressions for the evidence root**
 
 In `security_regression_test.go`, add:
 - evidence root symlink resolving outside workspace → error;
@@ -362,7 +362,7 @@ In `security_regression_test.go`, add:
 
 Skip only OS-specific symlink/permission cases when the platform genuinely cannot create or enforce them; do not convert a supported failure into a skip.
 
-- [ ] **Step 5: Run security discovery tests and observe RED**
+- [x] **Step 5: Run security discovery tests and observe RED**
 
 Run:
 
@@ -372,11 +372,11 @@ go test ./internal/evidence -run 'TestDiscoverLocalRejects'
 
 Expected: FAIL on the unimplemented containment/type rule.
 
-- [ ] **Step 6: Implement the minimal root/candidate safety checks**
+- [x] **Step 6: Implement the minimal root/candidate safety checks**
 
 Keep the checks local to discovery unless an existing `localinput` seam exactly fits. Do not create a general filesystem framework.
 
-- [ ] **Step 7: Run Task 3 tests GREEN**
+- [x] **Step 7: Run Task 3 tests GREEN**
 
 Run:
 
@@ -386,7 +386,7 @@ go test ./internal/evidence
 
 Expected: PASS.
 
-- [ ] **Step 8: Commit Task 3**
+- [x] **Step 8: Commit Task 3**
 
 ```bash
 git add internal/evidence/loader.go internal/evidence/loader_test.go internal/evidence/security_regression_test.go
@@ -412,7 +412,7 @@ git commit -m "feat: discover local evidence deterministically"
 - Produces internal: `func validateResolvedSubject(resolved domain.Subject) error`
 - Produces internal: `func bindSubject(evidenceSubject Subject, resolved domain.Subject) (SubjectBinding, error)`
 
-- [ ] **Step 1: Write RED binding tests**
+- [x] **Step 1: Write RED binding tests**
 
 Add `TestBindSubject` cases:
 - evidence HTTPS URI and resolved canonical GitHub identity normalize to the same repository + same head → `EXACT`;
@@ -421,7 +421,7 @@ Add `TestBindSubject` cases:
 - different repository → error;
 - malformed evidence repository URI → error.
 
-- [ ] **Step 2: Add Review Focus RED tests for malformed caller subject**
+- [x] **Step 2: Add Review Focus RED tests for malformed caller subject**
 
 Add `TestValidateResolvedSubject` cases where `domain.Subject` is manually constructed with:
 - malformed/non-canonical repository URI;
@@ -432,7 +432,7 @@ Expected: fail closed before any envelope binding is attempted. Also keep a `bin
 
 For repository URI, canonicalize the caller value and require the canonicalized value to equal the supplied resolved value; the evidence package must not silently “repair” a supposedly resolved subject.
 
-- [ ] **Step 3: Run subject tests and observe RED**
+- [x] **Step 3: Run subject tests and observe RED**
 
 Run:
 
@@ -442,13 +442,13 @@ go test ./internal/evidence -run 'TestBindSubject'
 
 Expected: FAIL because binding types/functions do not exist.
 
-- [ ] **Step 4: Implement subject binding only**
+- [x] **Step 4: Implement subject binding only**
 
 Implement `validateResolvedSubject` plus repository canonical comparison and revision comparison. Reuse the same 40/64 lowercase object-ID grammar used by envelope validation for the resolved head. `bindSubject` must call `validateResolvedSubject`.
 
 Do not inspect base revision, change-set digest, policy, producer, or wall clock in this helper.
 
-- [ ] **Step 5: Run subject tests GREEN**
+- [x] **Step 5: Run subject tests GREEN**
 
 Run:
 
@@ -458,7 +458,7 @@ go test ./internal/evidence -run 'TestBindSubject'
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit Task 4**
+- [x] **Step 6: Commit Task 4**
 
 ```bash
 git add internal/evidence/model.go internal/evidence/subject.go internal/evidence/subject_test.go
@@ -481,7 +481,7 @@ git commit -m "feat: bind evidence to resolved subjects"
 - Produces internal: `func validatePortableArtifactURI(uri string) error`
 - Artifact filesystem root: the resolved `localDiscovery.EvidenceRoot`, never the broader workspace root
 
-- [ ] **Step 1: Write RED lexical path tests**
+- [x] **Step 1: Write RED lexical path tests**
 
 Add `TestValidatePortableArtifactURI` with one accepted path:
 
@@ -505,7 +505,7 @@ and rejection cases for:
 - trailing dot/space segments;
 - case-insensitive Windows device aliases such as `CON`, `NUL.txt`, `COM1.log`, and `LPT9`.
 
-- [ ] **Step 2: Run lexical path tests and observe RED**
+- [x] **Step 2: Run lexical path tests and observe RED**
 
 Run:
 
@@ -515,11 +515,11 @@ go test ./internal/evidence -run 'TestValidatePortableArtifactURI'
 
 Expected: FAIL because the validator does not exist.
 
-- [ ] **Step 3: Implement portable path validation**
+- [x] **Step 3: Implement portable path validation**
 
 Validate the slash-separated logical string before converting it to an OS path. Do not use URL fetching and do not normalize unsafe input into acceptance.
 
-- [ ] **Step 4: Add RED artifact integrity tests**
+- [x] **Step 4: Add RED artifact integrity tests**
 
 Add `TestVerifyArtifact` covering:
 - regular local artifact with matching SHA-256 → success;
@@ -530,14 +530,14 @@ Add `TestVerifyArtifact` covering:
 
 Add a test using a multi-megabyte artifact to prove verification is not subject to `MaxWorkspaceInputBytes`. The test need not measure memory; it pins the absence of the configuration-file size cap.
 
-- [ ] **Step 5: Add RED symlink escape regression**
+- [x] **Step 5: Add RED symlink escape regression**
 
 Where symlinks are supported:
 - `.assurectl/evidence/artifacts/link.json` → file outside the evidence root must error, including a target that is still inside the workspace but elsewhere under that workspace.
 
 Also test a symlink that remains inside the evidence root if the spec/platform behavior permits it; it may succeed only when final resolved target remains inside the root and is regular.
 
-- [ ] **Step 6: Run artifact tests and observe RED**
+- [x] **Step 6: Run artifact tests and observe RED**
 
 Run:
 
@@ -547,13 +547,13 @@ go test ./internal/evidence -run 'TestVerifyArtifact|TestArtifactSymlink'
 
 Expected: FAIL until artifact verification exists.
 
-- [ ] **Step 7: Implement streaming SHA-256 verification**
+- [x] **Step 7: Implement streaming SHA-256 verification**
 
 After URI validation, call `OpenWorkspaceRegularFile(evidenceRoot, uri)` so symlink/path containment is enforced against the resolved evidence root itself, not merely against the broader workspace. Hash with `sha256.New()` + `io.Copy` and compare lowercase hex digest exactly to the validated expected digest.
 
 Do not parse artifact contents by media type.
 
-- [ ] **Step 8: Run Task 5 tests GREEN**
+- [x] **Step 8: Run Task 5 tests GREEN**
 
 Run:
 
@@ -563,7 +563,7 @@ go test ./internal/evidence ./internal/localinput
 
 Expected: PASS.
 
-- [ ] **Step 9: Commit Task 5**
+- [x] **Step 9: Commit Task 5**
 
 ```bash
 git add internal/evidence/artifact.go internal/evidence/artifact_test.go internal/evidence/security_regression_test.go
@@ -601,7 +601,7 @@ func LoadLocal(root string, subject domain.Subject) ([]Loaded, error)
 
 No final evidence state field is added.
 
-- [ ] **Step 1: Write RED happy-path integration test**
+- [x] **Step 1: Write RED happy-path integration test**
 
 Add `TestLoadLocalReturnsTypedAdvisoryEvidence` that creates:
 - two direct envelope JSON files in reverse creation order;
@@ -618,7 +618,7 @@ Assert:
 - parsed times are present;
 - envelope digests are populated.
 
-- [ ] **Step 2: Run the integration test and observe RED**
+- [x] **Step 2: Run the integration test and observe RED**
 
 Run:
 
@@ -628,7 +628,7 @@ go test ./internal/evidence -run 'TestLoadLocalReturnsTypedAdvisoryEvidence'
 
 Expected: FAIL because `LoadLocal` / `Loaded` composition is incomplete.
 
-- [ ] **Step 3: Implement minimal `LoadLocal` composition**
+- [x] **Step 3: Implement minimal `LoadLocal` composition**
 
 Order:
 1. call `validateResolvedSubject(subject)` even when the evidence directory is absent/empty;
@@ -642,7 +642,7 @@ Order:
 
 Do not return partial results with a non-nil error.
 
-- [ ] **Step 4: Add RED duplicate-ID and partial-set regressions**
+- [x] **Step 4: Add RED duplicate-ID and partial-set regressions**
 
 Add:
 - two valid files with same envelope `id` → error naming duplicate ID;
@@ -652,7 +652,7 @@ Add:
 - malformed member among valid siblings → complete call fails;
 - malformed caller `domain.Subject` + missing evidence directory → error rather than a silently successful empty set.
 
-- [ ] **Step 5: Run fail-closed set tests and observe RED**
+- [x] **Step 5: Run fail-closed set tests and observe RED**
 
 Run:
 
@@ -662,11 +662,11 @@ go test ./internal/evidence -run 'TestLoadLocalRejectsDuplicateEvidenceID|TestLo
 
 Expected: FAIL until set-wide validation is complete.
 
-- [ ] **Step 6: Implement set-wide uniqueness and all-or-error return**
+- [x] **Step 6: Implement set-wide uniqueness and all-or-error return**
 
 Use one map keyed by canonical evidence ID and one map keyed by the already-canonical accepted `artifact.uri`. Keep deterministic candidate order; do not reorder by ID or artifact path after discovery unless the spec is deliberately changed.
 
-- [ ] **Step 7: Write determinism tests**
+- [x] **Step 7: Write determinism tests**
 
 Create `determinism_test.go` with:
 - same typed envelope represented with different JSON whitespace/object-key order → same envelope digest;
@@ -676,7 +676,7 @@ Create `determinism_test.go` with:
 
 This pins the distinction between normalized typed-input digest and comparison facts.
 
-- [ ] **Step 8: Run determinism tests GREEN**
+- [x] **Step 8: Run determinism tests GREEN**
 
 Run:
 
@@ -686,7 +686,7 @@ go test ./internal/evidence -run 'TestLoadLocalDeterministic|TestEnvelopeDigest'
 
 Expected: PASS.
 
-- [ ] **Step 9: Run the complete evidence package with race detection**
+- [x] **Step 9: Run the complete evidence package with race detection**
 
 Run:
 
@@ -696,7 +696,7 @@ go test -race ./internal/evidence
 
 Expected: PASS.
 
-- [ ] **Step 10: Commit Task 6**
+- [x] **Step 10: Commit Task 6**
 
 ```bash
 git add internal/evidence
@@ -716,7 +716,7 @@ git commit -m "feat: load intrinsic local evidence"
 - Verifies: the completed evidence-ingestion slice only.
 - Produces: exact-head verification evidence suitable for the PR description.
 
-- [ ] **Step 1: Run focused package tests**
+- [x] **Step 1: Run focused package tests**
 
 ```bash
 go test ./internal/gitsubject ./internal/localinput ./internal/evidence ./internal/contract ./internal/policy
@@ -724,7 +724,7 @@ go test ./internal/gitsubject ./internal/localinput ./internal/evidence ./intern
 
 Expected: PASS.
 
-- [ ] **Step 2: Run required repository verification**
+- [x] **Step 2: Run required repository verification**
 
 ```bash
 mapfile -d '' files < <(find . -name '*.go' -type f -not -path './vendor/*' -print0)
@@ -736,7 +736,7 @@ go build -trimpath -o /tmp/assurectl ./cmd/assurectl
 
 Expected: every command exits 0.
 
-- [ ] **Step 3: Audit the diff against explicit scope exclusions**
+- [x] **Step 3: Audit the diff against explicit scope exclusions**
 
 Run:
 
@@ -754,7 +754,7 @@ Confirm no behavior changes under:
 
 Confirm no new module dependency was introduced.
 
-- [ ] **Step 4: Re-read the final diff for trust-boundary overclaims**
+- [x] **Step 4: Re-read the final diff for trust-boundary overclaims**
 
 Specifically verify:
 - no self-asserted evidence trust field is consumed;
@@ -765,7 +765,7 @@ Specifically verify:
 - no arbitrary network or shell execution exists;
 - comments/docs do not claim TOCTOU-race-free protection.
 
-- [ ] **Step 5: Commit documentation-only status/evidence update if needed**
+- [x] **Step 5: Commit documentation-only status/evidence update if needed**
 
 If implementation exactly matches the approved design, update the design status from `Approved for implementation planning` to `Implemented in M1 evidence-ingestion slice` only after all verification above is green.
 
