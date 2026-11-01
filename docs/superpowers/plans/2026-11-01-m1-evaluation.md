@@ -44,106 +44,106 @@
 **Files:**
 - Create: `internal/evaluation/evaluate.go`, `internal/evaluation/evaluate_test.go`
 
-- [ ] **Step 1: Write RED tests for the public surface and fail-closed validation**
+- [x] **Step 1: Write RED tests for the public surface and fail-closed validation**
 
 Table tests over `Evaluate(Input)`: zero `EvaluatedAt` rejected; empty/missing digests rejected; non-advisory trust/authority pairs rejected; wrong contract/policy schema versions rejected; empty or non-canonical requirement IDs rejected; duplicate requirement IDs rejected (constructed directly, bypassing the loader); valid minimal input (one policy requirement, empty evidence set, fixed instant) accepted and returns one `MISSING` result.
 
-- [ ] **Step 2: Run `go test ./internal/evaluation` and observe RED** (package does not exist).
+- [x] **Step 2: Run `go test ./internal/evaluation` and observe RED** (package does not exist).
 
-- [ ] **Step 3: Implement the minimal types and validation** (`Input`, `Result`, `Evaluate` validation path only; return an empty-but-valid `Result` for the accepted case).
+- [x] **Step 3: Implement the minimal types and validation** (`Input`, `Result`, `Evaluate` validation path only; return an empty-but-valid `Result` for the accepted case).
 
-- [ ] **Step 4: Run GREEN**, then `go vet ./internal/evaluation`.
+- [x] **Step 4: Run GREEN**, then `go vet ./internal/evaluation`.
 
-- [ ] **Step 5: Commit** `feat: add evaluation input validation`.
+- [x] **Step 5: Commit** `feat: add evaluation input validation`.
 
 ### Task 2: Requirement Universe and Matching
 
 **Files:** modify `internal/evaluation/evaluate.go`, `internal/evaluation/evaluate_test.go`
 
-- [ ] **Step 1: Write RED tests** for §5 cross-checks: criterion referencing unknown requirement → `CONTRACT_UNKNOWN_REQUIREMENT` (blocking) while remaining requirements still evaluate; unreferenced policy requirement → `POLICY_REQUIREMENT_UNREFERENCED` (info) and still evaluated; criteria with empty requirements lists produce nothing; and §6 matching: exact case-sensitive type equality, one envelope satisfying two same-type requirements, no cross-type leakage.
+- [x] **Step 1: Write RED tests** for §5 cross-checks: criterion referencing unknown requirement → `CONTRACT_UNKNOWN_REQUIREMENT` (blocking) while remaining requirements still evaluate; unreferenced policy requirement → `POLICY_REQUIREMENT_UNREFERENCED` (info) and still evaluated; criteria with empty requirements lists produce nothing; and §6 matching: exact case-sensitive type equality, one envelope satisfying two same-type requirements, no cross-type leakage.
 
-- [ ] **Step 2: Observe RED.**
+- [x] **Step 2: Observe RED.**
 
-- [ ] **Step 3: Implement universe assembly and matching.**
+- [x] **Step 3: Implement universe assembly and matching.**
 
-- [ ] **Step 4: Run GREEN** (focused tests + prior tasks).
+- [x] **Step 4: Run GREEN** (focused tests + prior tasks).
 
-- [ ] **Step 5: Commit** `feat: assemble evaluation requirement universe`.
+- [x] **Step 5: Commit** `feat: assemble evaluation requirement universe`.
 
 ### Task 3: Per-Envelope Facts — Revision, Producer, Freshness
 
 **Files:** modify `internal/evaluation/evaluate.go`, `internal/evaluation/evaluate_test.go`
 
-- [ ] **Step 1: Write RED table tests** for §7: `OTHER_REVISION` → stale fact; `FinishedAt` one nanosecond after `EvaluatedAt` → stale future; age exactly at `MaxAgeSeconds` → candidate, one nanosecond beyond → stale age; requirement without `MaxAgeSeconds` never stale by age; empty `AllowedProducerTypes` → untrusted for every producer; disallowed producer type → untrusted; precedence `STALE_REVISION` > `STALE_FUTURE` > `STALE_AGE` > `UNTRUSTED_PRODUCER` > candidate when several apply to one envelope.
+- [x] **Step 1: Write RED table tests** for §7: `OTHER_REVISION` → stale fact; `FinishedAt` one nanosecond after `EvaluatedAt` → stale future; age exactly at `MaxAgeSeconds` → candidate, one nanosecond beyond → stale age; requirement without `MaxAgeSeconds` never stale by age; empty `AllowedProducerTypes` → untrusted for every producer; disallowed producer type → untrusted; precedence `STALE_REVISION` > `STALE_FUTURE` > `STALE_AGE` > `UNTRUSTED_PRODUCER` > candidate when several apply to one envelope.
 
-- [ ] **Step 2: Observe RED.**
+- [x] **Step 2: Observe RED.**
 
-- [ ] **Step 3: Implement fact derivation** against `evidence.Loaded` fields only (`SubjectBinding`, `FinishedAt`, `Envelope.Producer.Type`) and policy fields; no envelope trust fields consulted.
+- [x] **Step 3: Implement fact derivation** against `evidence.Loaded` fields only (`SubjectBinding`, `FinishedAt`, `Envelope.Producer.Type`) and policy fields; no envelope trust fields consulted.
 
-- [ ] **Step 4: Run GREEN.**
+- [x] **Step 4: Run GREEN.**
 
-- [ ] **Step 5: Commit** `feat: derive evaluation evidence facts`.
+- [x] **Step 5: Commit** `feat: derive evaluation evidence facts`.
 
 ### Task 4: Requirement Normalization and Outcome Aggregation
 
 **Files:** modify `internal/evaluation/evaluate.go`, `internal/evaluation/evaluate_test.go`
 
-- [ ] **Step 1: Write RED table tests** for §8: no matches → `MISSING` with empty `EvidenceIDs`; consistent candidates → `VALID` with aggregation (all `PASSED` → `PASSED`; any `ERROR` → `ERROR`; else any `FAILED` → `FAILED`); conflicting `PASSED`/`FAILED` candidates → `INVALID` with no outcome; stale-only → `STALE`; untrusted-only → `UNTRUSTED`; stale-over-untrusted precedence; `Waivable` copied from policy; `WaiverStatus` always `NOT_APPLICABLE`; `EvidenceIDs` sorted and deduplicated; results ordered by policy requirement order.
+- [x] **Step 1: Write RED table tests** for §8: no matches → `MISSING` with empty `EvidenceIDs`; consistent candidates → `VALID` with aggregation (all `PASSED` → `PASSED`; any `ERROR` → `ERROR`; else any `FAILED` → `FAILED`); conflicting `PASSED`/`FAILED` candidates → `INVALID` with no outcome; stale-only → `STALE`; untrusted-only → `UNTRUSTED`; stale-over-untrusted precedence; `Waivable` copied from policy; `WaiverStatus` always `NOT_APPLICABLE`; `EvidenceIDs` sorted and deduplicated; results ordered by policy requirement order.
 
-- [ ] **Step 2: Observe RED.**
+- [x] **Step 2: Observe RED.**
 
-- [ ] **Step 3: Implement normalization and aggregation.**
+- [x] **Step 3: Implement normalization and aggregation.**
 
-- [ ] **Step 4: Run GREEN.**
+- [x] **Step 4: Run GREEN.**
 
-- [ ] **Step 5: Commit** `feat: normalize evaluation requirement results`.
+- [x] **Step 5: Commit** `feat: normalize evaluation requirement results`.
 
 ### Task 5: Findings Catalog and Ordering
 
 **Files:** create `internal/evaluation/findings_test.go`; modify `internal/evaluation/evaluate.go`
 
-- [ ] **Step 1: Write RED tests** for §9: each finding's code/category/severity/blocking/requirement/evidence-IDs binding; `EVIDENCE_MISSING` emitted once per requirement; `Message` bounded and deterministic; ordering by (code, requirement ID, joined evidence IDs) stable across input shuffles; no duplicate findings for one envelope; `POLICY_REQUIREMENT_UNREFERENCED` non-blocking and not duplicated per criterion.
+- [x] **Step 1: Write RED tests** for §9: each finding's code/category/severity/blocking/requirement/evidence-IDs binding; `EVIDENCE_MISSING` emitted once per requirement; `Message` bounded and deterministic; ordering by (code, requirement ID, joined evidence IDs) stable across input shuffles; no duplicate findings for one envelope; `POLICY_REQUIREMENT_UNREFERENCED` non-blocking and not duplicated per criterion.
 
-- [ ] **Step 2: Observe RED.**
+- [x] **Step 2: Observe RED.**
 
-- [ ] **Step 3: Implement the findings stage.**
+- [x] **Step 3: Implement the findings stage.**
 
-- [ ] **Step 4: Run GREEN.**
+- [x] **Step 4: Run GREEN.**
 
-- [ ] **Step 5: Commit** `feat: emit evaluation findings`.
+- [x] **Step 5: Commit** `feat: emit evaluation findings`.
 
 ### Task 6: Kernel Composition, Security Regressions, Determinism
 
 **Files:** create `internal/evaluation/composition_test.go`, `internal/evaluation/security_regression_test.go`; modify `internal/evaluation/evaluate.go`
 
-- [ ] **Step 1: Write RED composition tests** for §10's decision surface: all-passed → `PASSED`/`APPROVED`; established failure → `FAILED`/`REJECTED`; missing/stale/untrusted/conflict/error and blocking findings → `INDETERMINATE`/`BLOCKED`; assert `ACCEPTED_WITH_RISK` never occurs for any fixture in the package.
+- [x] **Step 1: Write RED composition tests** for §10's decision surface: all-passed → `PASSED`/`APPROVED`; established failure → `FAILED`/`REJECTED`; missing/stale/untrusted/conflict/error and blocking findings → `INDETERMINATE`/`BLOCKED`; assert `ACCEPTED_WITH_RISK` never occurs for any fixture in the package.
 
-- [ ] **Step 2: Observe RED** (composition not yet wired).
+- [x] **Step 2: Observe RED** (composition not yet wired).
 
-- [ ] **Step 3: Wire `decision.Evaluate` exactly once**; return its verdict/decision unmodified.
+- [x] **Step 3: Wire `decision.Evaluate` exactly once**; return its verdict/decision unmodified.
 
-- [ ] **Step 4: Write RED security regressions:** future-dated evidence blocks; conflicting same-type evidence blocks with `EVIDENCE_CONFLICT`; cross-revision mix does not rescue a requirement to `VALID`; empty allowlist blocks; envelope trust fields (none exist on the type — assert evaluation compiles against the typed model and never constructs trust) and candidate-head sources cannot influence results beyond the typed inputs; repeated calls with deeply equal input are deeply equal; shuffled evidence input preserves findings order.
+- [x] **Step 4: Write RED security regressions:** future-dated evidence blocks; conflicting same-type evidence blocks with `EVIDENCE_CONFLICT`; cross-revision mix does not rescue a requirement to `VALID`; empty allowlist blocks; envelope trust fields (none exist on the type — assert evaluation compiles against the typed model and never constructs trust) and candidate-head sources cannot influence results beyond the typed inputs; repeated calls with deeply equal input are deeply equal; shuffled evidence input preserves findings order.
 
-- [ ] **Step 5: Observe RED, implement missing pieces, run GREEN.**
+- [x] **Step 5: Observe RED, implement missing pieces, run GREEN.**
 
-- [ ] **Step 6: Run `go test -race ./internal/evaluation`** (CI provides race evidence on Linux; local Windows hosts without cgo record the limitation).
+- [x] **Step 6: Run `go test -race ./internal/evaluation`** (CI provides race evidence on Linux; local Windows hosts without cgo record the limitation).
 
-- [ ] **Step 7: Commit** `feat: compose evaluation with decision kernel`.
+- [x] **Step 7: Commit** `feat: compose evaluation with decision kernel`.
 
 ### Task 7: Full Verification, Scope Audit, and Documentation Alignment
 
 **Files:**
 - Modify only if verified: `docs/superpowers/specs/2026-11-01-m1-evaluation-design.md`.
 
-- [ ] **Step 1: Run focused tests** `go test ./internal/evaluation ./internal/decision ./internal/evidence ./internal/contract ./internal/policy`.
+- [x] **Step 1: Run focused tests** `go test ./internal/evaluation ./internal/decision ./internal/evidence ./internal/contract ./internal/policy`.
 
-- [ ] **Step 2: Run required repository verification** (CONTRIBUTING.md): gofmt clean, `go vet ./...`, `go test -race ./...`, `go build -trimpath -o /tmp/assurectl ./cmd/assurectl`.
+- [x] **Step 2: Run required repository verification** (CONTRIBUTING.md): gofmt clean, `go vet ./...`, `go test -race ./...`, `go build -trimpath -o /tmp/assurectl ./cmd/assurectl`.
 
-- [ ] **Step 3: Scope audit:** `git diff --name-only main...HEAD` shows only `internal/evaluation/*` and the design doc; `go.mod`/`go.sum`, `cmd/`, `internal/decision/`, `internal/domain/`, `internal/evidence/`, `schemas/`, `examples/` untouched.
+- [x] **Step 3: Scope audit:** `git diff --name-only main...HEAD` shows only `internal/evaluation/*` and the design doc; `go.mod`/`go.sum`, `cmd/`, `internal/decision/`, `internal/domain/`, `internal/evidence/`, `schemas/`, `examples/` untouched.
 
-- [ ] **Step 4: Trust-boundary re-read:** no `time.Now`, no filesystem/network/environment reads in `internal/evaluation`; no envelope field beyond the typed model consulted; no kernel post-processing; no `ACCEPTED_WITH_RISK` path; no TOCTOU or trust claims in comments.
+- [x] **Step 4: Trust-boundary re-read:** no `time.Now`, no filesystem/network/environment reads in `internal/evaluation`; no envelope field beyond the typed model consulted; no kernel post-processing; no `ACCEPTED_WITH_RISK` path; no TOCTOU or trust claims in comments.
 
-- [ ] **Step 5: Docs-only commit** flipping the design status to `Implemented in M1 evaluation slice` after all verification is green, plus plan checkbox updates.
+- [x] **Step 5: Docs-only commit** flipping the design status to `Implemented in M1 evaluation slice` after all verification is green, plus plan checkbox updates.
 
 - [ ] **Step 6: Push and require exact-head CI** (Go 1.26.x / 1.27.x matrix); record head SHA, run ID, and per-check results.
 
