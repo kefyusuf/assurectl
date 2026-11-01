@@ -778,19 +778,21 @@ git commit -m "docs: record M1 evidence ingestion verification"
 
 Do not make production fixes in this step; any discovered behavior defect returns to the owning task with RED → GREEN evidence.
 
-- [ ] **Step 6: Push and require exact-head CI**
+- [x] **Step 6: Push and require exact-head CI**
 
 The exact branch head must pass the repository's Go 1.26.x / Go 1.27.x GitHub Actions matrix before merge readiness is claimed.
 
 Record:
-- exact head SHA;
-- workflow run number/ID;
-- formatting result;
-- vet result;
-- race-test result;
-- CLI-build result.
+- exact head SHA: `f80309b948244c53112c687cd190667e9170d91e`;
+- workflow run: `41303478016` (Go 1.26.x pass, Go 1.27.x pass);
+- formatting result: pass;
+- vet result: pass;
+- race-test result: pass (GitHub Actions ubuntu-latest; the local Windows host cannot run `-race`: no cgo/C toolchain);
+- CLI-build result: pass.
 
-- [ ] **Step 7: Final review gate**
+- [x] **Step 7: Final review gate**
+
+Review performed against the plan, the evidence-ingestion design spec, ADR-0003, ADR-0007, and `docs/threat-model/v0.md`: changed files match the plan's Create/Modify list exactly; no changes under `cmd/`, `internal/decision/`, `internal/domain/evidence.go`, or `schemas/`; no new module dependency; no `time.Now()`, network, shell execution, self-asserted trust consumption, final `EvidenceState` assignment, partial-set return, or TOCTOU claims in the slice; repository mismatch fails ingestion while other-revision remains a non-exact fact; exact binding is never labeled a final `VALID` state. A pre-commit Mimosa scan flagged pre-existing `internal/gitsubject` `exec.CommandContext` patterns as "command injection"; assessed as scanner false positives (absolute allowlisted executable, argument-list exec without a shell, sanitized environment; unchanged by this slice).
 
 Review the complete PR against:
 - this plan;
