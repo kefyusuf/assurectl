@@ -1,6 +1,7 @@
 package receipt
 
 import (
+	"fmt"
 	"sort"
 	"time"
 
@@ -28,6 +29,10 @@ type BuildInput struct {
 // Build maps the evaluated facts onto the v0 advisory receipt. It is
 // fail-closed: every semantic check must pass before a receipt is returned.
 func Build(input BuildInput) (Receipt, error) {
+	if err := validateBuildInput(input); err != nil {
+		return Receipt{}, fmt.Errorf("build receipt: %w", err)
+	}
+
 	built := Receipt{
 		SchemaVersion: SchemaVersion,
 		Authority:     input.Authority,
@@ -43,7 +48,7 @@ func Build(input BuildInput) (Receipt, error) {
 				{
 					Layer:          LayerProtocolBaseline,
 					Source:         BuiltinProtocolBaselineSource,
-					Digest:         inputmeta.SHA256([]byte(BuiltinProtocolBaselineSource)),
+					Digest:         builtinDigest(),
 					TrustStatus:    inputmeta.TrustStatusUntrusted,
 					AuthorityBasis: inputmeta.AuthorityBasisAdvisoryWorkspace,
 				},
@@ -70,6 +75,9 @@ func Build(input BuildInput) (Receipt, error) {
 			ProtocolVersion: ProtocolVersion,
 		},
 		EvaluatedAt: input.EvaluatedAt.UTC().Format(time.RFC3339),
+	}
+	if err := validateReceipt(built); err != nil {
+		return Receipt{}, fmt.Errorf("build receipt: %w", err)
 	}
 	return built, nil
 }
