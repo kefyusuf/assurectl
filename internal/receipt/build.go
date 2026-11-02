@@ -13,6 +13,7 @@ import (
 	"github.com/kefyusuf/assurectl/internal/evidence"
 	"github.com/kefyusuf/assurectl/internal/inputmeta"
 	"github.com/kefyusuf/assurectl/internal/policy"
+	"github.com/kefyusuf/assurectl/internal/waiver"
 )
 
 // BuildInput is the closed set of externally resolved facts one receipt may
@@ -67,7 +68,7 @@ func Build(input BuildInput) (Receipt, error) {
 		Evidence:            evidenceReferences(input.Evidence),
 		RequirementResults:  copyRequirements(input.Evaluation.Requirements),
 		Findings:            copyFindings(input.Evaluation.Findings),
-		Waivers:             []WaiverRecord{},
+		Waivers:             convertWaivers(input.Evaluation.Waivers),
 		VerificationVerdict: input.Evaluation.Verdict.Verdict,
 		CompletionDecision:  input.Evaluation.Verdict.Decision,
 		Verifier: Verifier{
@@ -117,6 +118,31 @@ func copyFindings(findings []domain.Finding) []domain.Finding {
 		copied = append(copied, finding)
 	}
 	return copied
+}
+
+// convertWaivers maps the evaluation's resolved waiver records onto the
+// receipt's waiver_record structure, field for field.
+func convertWaivers(records []waiver.Record) []WaiverRecord {
+	converted := make([]WaiverRecord, 0, len(records))
+	for _, record := range records {
+		converted = append(converted, WaiverRecord{
+			ID:     record.ID,
+			Target: WaiverTarget{Kind: record.Target.Kind, ID: record.Target.ID},
+			Scope: WaiverScope{
+				RepositoryURI: record.Scope.RepositoryURI,
+				WorkUnitID:    record.Scope.WorkUnitID,
+				HeadRevision:  record.Scope.HeadRevision,
+			},
+			Reason:       record.Reason,
+			AcceptedRisk: record.AcceptedRisk,
+			Approver:     WaiverApprover{Identity: record.Approver.Identity, Authority: record.Approver.Authority},
+			IssuedAt:     record.IssuedAt,
+			ExpiresAt:    record.ExpiresAt,
+			Status:       record.Status,
+			Digest:       record.Digest,
+		})
+	}
+	return converted
 }
 
 func builtinDigest() inputmeta.Digest {
