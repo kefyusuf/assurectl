@@ -12,30 +12,38 @@ import (
 	"github.com/kefyusuf/assurectl/internal/decision"
 	"github.com/kefyusuf/assurectl/internal/domain"
 	"github.com/kefyusuf/assurectl/internal/evidence"
+	"github.com/kefyusuf/assurectl/internal/gitsubject"
 	"github.com/kefyusuf/assurectl/internal/inputmeta"
 	"github.com/kefyusuf/assurectl/internal/policy"
+	"github.com/kefyusuf/assurectl/internal/waiver"
 )
 
 var (
 	canonicalIdentifier = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$`)
 	digestValuePattern  = regexp.MustCompile(`^[0-9a-f]{64}$`)
+	objectIDPattern     = regexp.MustCompile(`^[0-9a-f]{40}([0-9a-f]{24})?$`)
 )
 
 // Input is the complete, closed set of facts one evaluation may consider.
 // EvaluatedAt is supplied by the caller; this package never reads the wall
 // clock so repeated evaluation of deeply equal input stays deeply equal.
+// Subject is required when Waivers is non-empty: waiver scope matching runs
+// against the resolved subject.
 type Input struct {
 	Contract    contract.Loaded
 	Policy      policy.Loaded
 	Evidence    []evidence.Loaded
+	Subject     domain.Subject
+	Waivers     []waiver.Record
 	EvaluatedAt time.Time
 }
 
-// Result carries normalized per-requirement facts, findings, and the
-// verdict/decision pair produced by the deterministic kernel.
+// Result carries normalized per-requirement facts, findings, the resolved
+// waiver records, and the verdict/decision pair produced by the kernel.
 type Result struct {
 	Requirements []domain.RequirementResult
 	Findings     []domain.Finding
+	Waivers      []waiver.Record
 	Verdict      domain.EvaluationResult
 }
 
@@ -53,16 +61,19 @@ func Evaluate(input Input) (Result, error) {
 		requirements = append(requirements, result)
 		requirementFindings = append(requirementFindings, findings...)
 	}
-	findings := sortFindings(append(universeFindings(
+	findings := append(universeFindings(
 		input.Contract.Contract.AcceptanceCriteria,
 		input.Policy.Policy.Requirements,
-	), requirementFindings...))
+	), requirementFindings...)
+
+	requirements, resolvedWaivers, waiverFindings := applyWaivers(requirements, input.Waivers, input)
+	findings = sortFindings(append(findings, waiverFindings...))
 
 	verdict, err := decision.Evaluate(requirements, findings...)
 	if err != nil {
 		return Result{}, fmt.Errorf("evaluate: kernel rejected normalized results: %w", err)
 	}
-	return Result{Requirements: requirements, Findings: findings, Verdict: verdict}, nil
+	return Result{Requirements: requirements, Findings: findings, Waivers: resolvedWaivers, Verdict: verdict}, nil
 }
 
 // universeFindings cross-checks the contract's acceptance criteria against
@@ -350,6 +361,16 @@ func validateInput(input Input) error {
 					i, criterion.ID, j, reference,
 				)
 			}
+		}
+	}
+
+	if len(input.Waivers) > 0 {
+		canonical, err := gitsubject.CanonicalizeRepositoryIdentity(input.Subject.RepositoryURI)
+		if err != nil || canonical != input.Subject.RepositoryURI {
+			return fmt.Errorf("subject repository_uri %q: waivers require a canonical resolved subject", input.Subject.RepositoryURI)
+		}
+		if !objectIDPattern.MatchString(input.Subject.HeadRevision) {
+			return fmt.Errorf("subject head_revision %q: waivers require a resolved head object", input.Subject.HeadRevision)
 		}
 	}
 	return nil
