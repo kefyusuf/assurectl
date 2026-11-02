@@ -1,6 +1,6 @@
 # M1 Verify CLI and Advisory Receipt Design
 
-**Status:** Draft for review  
+**Status:** Implemented in M1 verify-receipt slice  
 **Date:** 2026-11-02  
 **Milestone:** M1 — Local advisory evaluation  
 **Base commit:** `2fb1b2652aca06e60543e7d21327fa9dd45cad0b`  
