@@ -1,6 +1,6 @@
 # M1 Requirement Evaluation and Findings Design
 
-**Status:** Draft for review  
+**Status:** Implemented in M1 evaluation slice  
 **Date:** 2026-11-01  
 **Milestone:** M1 — Local advisory evaluation  
 **Base commit:** `f795de63c37366105e9723ac701f8654326772d1`  
