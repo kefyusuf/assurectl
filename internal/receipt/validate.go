@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/kefyusuf/assurectl/internal/decision"
 	"github.com/kefyusuf/assurectl/internal/domain"
 	"github.com/kefyusuf/assurectl/internal/inputmeta"
 )
@@ -35,6 +36,9 @@ func validateBuildInput(input BuildInput) error {
 // complete verifier block, and a parseable RFC3339 evaluation instant.
 func validateReceipt(receipt Receipt) error {
 	if err := validateRequirementUniqueness(receipt.RequirementResults); err != nil {
+		return err
+	}
+	if err := validateDecisionDerivation(receipt); err != nil {
 		return err
 	}
 	evidenceDigests := make(map[string]inputmeta.Digest, len(receipt.Evidence))
@@ -73,6 +77,26 @@ func validateRequirementUniqueness(results []domain.RequirementResult) error {
 			return fmt.Errorf("requirement_results[%d]: duplicate requirement_id %q", i, result.RequirementID)
 		}
 		seen[result.RequirementID] = struct{}{}
+	}
+	return nil
+}
+
+// validateDecisionDerivation re-runs the deterministic kernel over the
+// receipt's own requirement results and findings and fails on any mismatch
+// with the pair destined for the receipt: the recorded decision is derived,
+// never supplied.
+func validateDecisionDerivation(receipt Receipt) error {
+	derived, err := decision.Evaluate(receipt.RequirementResults, receipt.Findings...)
+	if err != nil {
+		return fmt.Errorf("decision re-derivation: %w", err)
+	}
+	recorded := domain.EvaluationResult{
+		Verdict:  receipt.VerificationVerdict,
+		Decision: receipt.CompletionDecision,
+	}
+	if derived != recorded {
+		return fmt.Errorf("receipt records (%q, %q) but the kernel derives (%q, %q)",
+			recorded.Verdict, recorded.Decision, derived.Verdict, derived.Decision)
 	}
 	return nil
 }
