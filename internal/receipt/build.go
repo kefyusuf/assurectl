@@ -1,6 +1,7 @@
 package receipt
 
 import (
+	"encoding/json"
 	"fmt"
 	"sort"
 	"time"
@@ -122,4 +123,18 @@ func builtinDigest() inputmeta.Digest {
 	// The protocol baseline is compiled in; its recorded digest identifies
 	// the built-in definition rather than a policy file.
 	return inputmeta.SHA256([]byte(BuiltinProtocolBaselineSource))
+}
+
+// JSON renders the receipt as deterministic compact JSON.
+func (r Receipt) JSON() ([]byte, error) {
+	return json.Marshal(r)
+}
+
+// Digest returns the SHA-256 of the exact emitted receipt bytes.
+func (r Receipt) Digest() (inputmeta.Digest, error) {
+	data, err := r.JSON()
+	if err != nil {
+		return inputmeta.Digest{}, err
+	}
+	return inputmeta.SHA256(data), nil
 }
