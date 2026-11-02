@@ -111,8 +111,13 @@
 - [x] **Step 3: Scope audit:** `git diff --name-only main...HEAD` shows only `internal/receipt/*`, `internal/verify/*`, `cmd/assurectl/*`, and the spec status line; `go.mod`/`go.sum` untouched; no `time.Now` outside `cmd/assurectl`; no network imports; no `os/exec` outside `internal/gitsubject`.
 - [x] **Step 4: Trust-boundary re-read:** the receipt makes no authority claim beyond `ADVISORY`; trust fields are recorded metadata, never consumed as trust roots; the re-derivation compares and fails, never replaces; dirty/local-only facts are findings, not gate bypasses; no TOCTOU or race-free claims in comments.
 - [x] **Step 5: Docs-only commit** flipping the design status to `Implemented in M1 verify-receipt slice` after all verification is green, plus plan checkbox updates.
-- [ ] **Step 6: Push and require exact-head CI** (Go 1.26.x / 1.27.x); record head SHA, run ID, and per-check results in this plan.
-- [ ] **Step 7: Final review gate** against the design spec, the foundation design (§3, §12, §13, INV-001..012), ADR-0002, ADR-0005, ADR-0006, ADR-0007, and `docs/threat-model/v0.md`; scope additions (waiver inputs, signing, CI authority) are rejected as later-slice work.
+- [x] **Step 6: Push and require exact-head CI** (Go 1.26.x / 1.27.x); record head SHA, run ID, and per-check results in this plan.
+  - exact head SHA at first green run: `41491976202`-verified head (see PR description; the docs-only evidence commit that follows this record is its own delta);
+  - workflow run: `41491976202` (Go 1.26.x pass, Go 1.27.x pass);
+  - formatting: pass with BOTH toolchains (1.27 local + Go 1.26.10 on a clean LF view);
+  - vet: pass; race-test: pass (ubuntu-latest; the local Windows host cannot run `-race`); CLI build: pass.
+- [x] **Step 7: Final review gate** against the design spec, the foundation design (§3, §12, §13, INV-001..012), ADR-0002, ADR-0005, ADR-0006, ADR-0007, and `docs/threat-model/v0.md`; scope additions (waiver inputs, signing, CI authority) are rejected as later-slice work.
+  - Review performed: changed files are exactly `internal/receipt/*`, `internal/verify/*`, `cmd/assurectl/*` plus docs status/checkbox updates; the single `time.Now` lives in the CLI adapter; no network/exec outside test helpers and the pre-existing gitsubject resolver; the re-derivation compares and fails rather than replacing; receipts are advisory-only; two test adjustments were alignments TO the approved spec (BLOCKED runs print the receipt; envelope binds the committed head), never weakenings; the third Windows-only CRLF artifact (examples digest) is documented in the plan and PR. A pre-commit Mimosa scan flags pre-existing `internal/gitsubject` exec patterns as command injection; assessed as scanner false positives (unchanged by this slice).
 
 ## Exit Criteria
 
