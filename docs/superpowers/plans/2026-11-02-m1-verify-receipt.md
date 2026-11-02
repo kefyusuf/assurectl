@@ -46,71 +46,71 @@
 
 **Files:** create `internal/receipt/model.go`, `internal/receipt/build.go`, `internal/receipt/build_test.go`.
 
-- [ ] **Step 1: Write RED mapping tests** — build from a fixture evaluation result + loaded inputs + subject + fixed instant; assert every schema-required field is present with the draft's exact JSON names (`schema_version`, `authority`, `subject`, `work_unit`, `contract`, `policy`, `evidence`, `requirement_results`, `findings`, `waivers`, `verification_verdict`, `completion_decision`, `verifier`, `evaluated_at`); `authority` is `ADVISORY`; `contract` carries source/digest/trust status; `policy` carries one project-layer source plus the `protocol_baseline` builtin layer and the effective digest; `evidence[]` is `{id, digest}` sorted by id; `verifier` is `assurectl`/buildinfo version/protocol `v0`; `evaluated_at` is the supplied instant in RFC3339.
-- [ ] **Step 2: Observe RED** (package does not exist).
-- [ ] **Step 3: Implement the model and the mapping path** (no validation yet beyond required-field assembly).
-- [ ] **Step 4: Run GREEN** + `go vet ./internal/receipt`.
-- [ ] **Step 5: Commit** `feat: build advisory receipt model`.
+- [x] **Step 1: Write RED mapping tests** — build from a fixture evaluation result + loaded inputs + subject + fixed instant; assert every schema-required field is present with the draft's exact JSON names (`schema_version`, `authority`, `subject`, `work_unit`, `contract`, `policy`, `evidence`, `requirement_results`, `findings`, `waivers`, `verification_verdict`, `completion_decision`, `verifier`, `evaluated_at`); `authority` is `ADVISORY`; `contract` carries source/digest/trust status; `policy` carries one project-layer source plus the `protocol_baseline` builtin layer and the effective digest; `evidence[]` is `{id, digest}` sorted by id; `verifier` is `assurectl`/buildinfo version/protocol `v0`; `evaluated_at` is the supplied instant in RFC3339.
+- [x] **Step 2: Observe RED** (package does not exist).
+- [x] **Step 3: Implement the model and the mapping path** (no validation yet beyond required-field assembly).
+- [x] **Step 4: Run GREEN** + `go vet ./internal/receipt`.
+- [x] **Step 5: Commit** `feat: build advisory receipt model`.
 
 ### Task 2: Semantic Fail-Closed Checks
 
 **Files:** modify `internal/receipt/build.go`, `internal/receipt/build_test.go`.
 
-- [ ] **Step 1: Write RED rejection-table tests**, one per design §7 check: duplicate requirement IDs; `evidence_ids` entry with no matching top-level `evidence[].id`; `evidence[].digest` mismatch against the referenced envelope digest; any `VALID` result while the top-level evidence set is empty; a hand-built waiver record whose target is not a failed requirement result; a waiver record with `status: VALID` on a non-waivable or non-failed result; a non-`BLOCKED` receipt carrying a blocking finding; a non-advisory authority; an incomplete verifier block; an unparseable or non-RFC3339 `evaluated_at`. Every case must return an error and no receipt.
-- [ ] **Step 2: Observe RED.**
-- [ ] **Step 3: Implement the checks** so they run for every receipt, including `BLOCKED`.
-- [ ] **Step 4: Run GREEN.**
-- [ ] **Step 5: Commit** `feat: enforce receipt semantic invariants`.
+- [x] **Step 1: Write RED rejection-table tests**, one per design §7 check: duplicate requirement IDs; `evidence_ids` entry with no matching top-level `evidence[].id`; `evidence[].digest` mismatch against the referenced envelope digest; any `VALID` result while the top-level evidence set is empty; a hand-built waiver record whose target is not a failed requirement result; a waiver record with `status: VALID` on a non-waivable or non-failed result; a non-`BLOCKED` receipt carrying a blocking finding; a non-advisory authority; an incomplete verifier block; an unparseable or non-RFC3339 `evaluated_at`. Every case must return an error and no receipt.
+- [x] **Step 2: Observe RED.**
+- [x] **Step 3: Implement the checks** so they run for every receipt, including `BLOCKED`.
+- [x] **Step 4: Run GREEN.**
+- [x] **Step 5: Commit** `feat: enforce receipt semantic invariants`.
 
 ### Task 3: Decision Re-Derivation
 
 **Files:** modify `internal/receipt/build.go`, `internal/receipt/build_test.go`.
 
-- [ ] **Step 1: Write RED tests** — a receipt built from a tampered verdict or decision pair (any single-field mutation away from what `decision.Evaluate` yields for the same requirement results and findings) is rejected; the honest pair builds successfully.
-- [ ] **Step 2: Observe RED.**
-- [ ] **Step 3: Implement** the re-derivation call and mismatch failure.
-- [ ] **Step 4: Run GREEN.**
-- [ ] **Step 5: Commit** `feat: derive receipt decisions semantically`.
+- [x] **Step 1: Write RED tests** — a receipt built from a tampered verdict or decision pair (any single-field mutation away from what `decision.Evaluate` yields for the same requirement results and findings) is rejected; the honest pair builds successfully.
+- [x] **Step 2: Observe RED.**
+- [x] **Step 3: Implement** the re-derivation call and mismatch failure.
+- [x] **Step 4: Run GREEN.**
+- [x] **Step 5: Commit** `feat: derive receipt decisions semantically`.
 
 ### Task 4: Determinism
 
 **Files:** modify `internal/receipt/build_test.go`, `internal/receipt/build.go` if needed.
 
-- [ ] **Step 1: Write RED tests** — repeated builds from deeply equal inputs produce byte-identical JSON; shuffling the input evidence slice produces byte-identical output; the receipt digest helper returns the SHA-256 of the exact emitted bytes.
-- [ ] **Step 2: Observe RED** (digest helper missing; shuffle may already pass — the failing half justifies the task).
-- [ ] **Step 3: Implement** whatever is missing; no map iteration may reach output.
-- [ ] **Step 4: Run GREEN.**
-- [ ] **Step 5: Commit** `feat: pin advisory receipt determinism`.
+- [x] **Step 1: Write RED tests** — repeated builds from deeply equal inputs produce byte-identical JSON; shuffling the input evidence slice produces byte-identical output; the receipt digest helper returns the SHA-256 of the exact emitted bytes.
+- [x] **Step 2: Observe RED** (digest helper missing; shuffle may already pass — the failing half justifies the task).
+- [x] **Step 3: Implement** whatever is missing; no map iteration may reach output.
+- [x] **Step 4: Run GREEN.**
+- [x] **Step 5: Commit** `feat: pin advisory receipt determinism`.
 
 ### Task 5: Orchestrator Integration
 
 **Files:** create `internal/verify/verify.go`, `internal/verify/verify_test.go`.
 
-- [ ] **Step 1: Write RED integration tests** using temporary Git repositories (same in-process pattern as `internal/gitsubject` tests): clean-worktree happy path returns a receipt whose subject matches the resolved head; dirty worktree adds the non-blocking `SUBJECT_DIRTY_WORKTREE` finding; a workspace with no remote adds `SUBJECT_LOCAL_ONLY`; an evidence envelope bound to another repository fails the run; an empty policy fails closed with no receipt; a missing contract fails closed.
-- [ ] **Step 2: Observe RED.**
-- [ ] **Step 3: Implement** the composition, the two diagnostic findings, and first-error propagation.
-- [ ] **Step 4: Run GREEN** (focused package + prior tasks).
-- [ ] **Step 5: Commit** `feat: orchestrate local advisory verification`.
+- [x] **Step 1: Write RED integration tests** using temporary Git repositories (same in-process pattern as `internal/gitsubject` tests): clean-worktree happy path returns a receipt whose subject matches the resolved head; dirty worktree adds the non-blocking `SUBJECT_DIRTY_WORKTREE` finding; a workspace with no remote adds `SUBJECT_LOCAL_ONLY`; an evidence envelope bound to another repository fails the run; an empty policy fails closed with no receipt; a missing contract fails closed.
+- [x] **Step 2: Observe RED.**
+- [x] **Step 3: Implement** the composition, the two diagnostic findings, and first-error propagation.
+- [x] **Step 4: Run GREEN** (focused package + prior tasks).
+- [x] **Step 5: Commit** `feat: orchestrate local advisory verification`.
 
 ### Task 6: CLI Surface
 
 **Files:** modify `cmd/assurectl/main.go`, `cmd/assurectl/main_test.go`.
 
-- [ ] **Step 1: Write RED CLI tests** — `verify` without `--base` exits 64; unknown flag exits 64; positional arguments exit 64; a successful run prints exactly one receipt JSON document on stdout and the summary line on stderr; decision mapping: `APPROVED` → 0, `REJECTED` → 1, `BLOCKED` → 2; any pipeline error exits 2 with diagnostics on stderr and nothing on stdout; help output lists `verify`.
-- [ ] **Step 2: Observe RED.**
-- [ ] **Step 3: Implement** the subcommand: flag parsing only, wiring to `internal/verify`, exit-code and channel mapping; the CLI adapter supplies the UTC evaluation instant truncated to whole seconds.
-- [ ] **Step 4: Run GREEN** for the whole repository (`go test ./...`).
-- [ ] **Step 5: Commit** `feat: add verify subcommand`.
+- [x] **Step 1: Write RED CLI tests** — `verify` without `--base` exits 64; unknown flag exits 64; positional arguments exit 64; a successful run prints exactly one receipt JSON document on stdout and the summary line on stderr; decision mapping: `APPROVED` → 0, `REJECTED` → 1, `BLOCKED` → 2; any pipeline error exits 2 with diagnostics on stderr and nothing on stdout; help output lists `verify`.
+- [x] **Step 2: Observe RED.**
+- [x] **Step 3: Implement** the subcommand: flag parsing only, wiring to `internal/verify`, exit-code and channel mapping; the CLI adapter supplies the UTC evaluation instant truncated to whole seconds.
+- [x] **Step 4: Run GREEN** for the whole repository (`go test ./...`).
+- [x] **Step 5: Commit** `feat: add verify subcommand`.
 
 ### Task 7: Full Verification, Scope Audit, and Documentation Alignment
 
 **Files:** modify only the design spec status if verified.
 
-- [ ] **Step 1: Run focused tests** `go test ./internal/receipt ./internal/verify ./internal/evaluation ./internal/gitsubject ./cmd/assurectl`.
-- [ ] **Step 2: Run required repository verification** (CONTRIBUTING.md): gofmt clean (both toolchains on a clean LF view), `go vet ./...`, `go test -race ./...` (CI provides race on Linux), `go build -trimpath -o /tmp/assurectl ./cmd/assurectl`.
-- [ ] **Step 3: Scope audit:** `git diff --name-only main...HEAD` shows only `internal/receipt/*`, `internal/verify/*`, `cmd/assurectl/*`, and the spec status line; `go.mod`/`go.sum` untouched; no `time.Now` outside `cmd/assurectl`; no network imports; no `os/exec` outside `internal/gitsubject`.
-- [ ] **Step 4: Trust-boundary re-read:** the receipt makes no authority claim beyond `ADVISORY`; trust fields are recorded metadata, never consumed as trust roots; the re-derivation compares and fails, never replaces; dirty/local-only facts are findings, not gate bypasses; no TOCTOU or race-free claims in comments.
-- [ ] **Step 5: Docs-only commit** flipping the design status to `Implemented in M1 verify-receipt slice` after all verification is green, plus plan checkbox updates.
+- [x] **Step 1: Run focused tests** `go test ./internal/receipt ./internal/verify ./internal/evaluation ./internal/gitsubject ./cmd/assurectl`.
+- [x] **Step 2: Run required repository verification** (CONTRIBUTING.md): gofmt clean (both toolchains on a clean LF view), `go vet ./...`, `go test -race ./...` (CI provides race on Linux), `go build -trimpath -o /tmp/assurectl ./cmd/assurectl`.
+- [x] **Step 3: Scope audit:** `git diff --name-only main...HEAD` shows only `internal/receipt/*`, `internal/verify/*`, `cmd/assurectl/*`, and the spec status line; `go.mod`/`go.sum` untouched; no `time.Now` outside `cmd/assurectl`; no network imports; no `os/exec` outside `internal/gitsubject`.
+- [x] **Step 4: Trust-boundary re-read:** the receipt makes no authority claim beyond `ADVISORY`; trust fields are recorded metadata, never consumed as trust roots; the re-derivation compares and fails, never replaces; dirty/local-only facts are findings, not gate bypasses; no TOCTOU or race-free claims in comments.
+- [x] **Step 5: Docs-only commit** flipping the design status to `Implemented in M1 verify-receipt slice` after all verification is green, plus plan checkbox updates.
 - [ ] **Step 6: Push and require exact-head CI** (Go 1.26.x / 1.27.x); record head SHA, run ID, and per-check results in this plan.
 - [ ] **Step 7: Final review gate** against the design spec, the foundation design (§3, §12, §13, INV-001..012), ADR-0002, ADR-0005, ADR-0006, ADR-0007, and `docs/threat-model/v0.md`; scope additions (waiver inputs, signing, CI authority) are rejected as later-slice work.
 
