@@ -16,8 +16,8 @@ func TestSchemaRootsAreStrictValidJSON(t *testing.T) {
 		t.Fatalf("filepath.Glob() error = %v", err)
 	}
 	sort.Strings(paths)
-	if len(paths) != 4 {
-		t.Fatalf("schema count = %d, want 4: %v", len(paths), paths)
+	if len(paths) != 5 {
+		t.Fatalf("schema count = %d, want 5: %v", len(paths), paths)
 	}
 
 	for _, path := range paths {
@@ -46,6 +46,43 @@ func TestSchemaRootsAreStrictValidJSON(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestWaiverRecordDraftMatchesReceiptDefinition(t *testing.T) {
+	root := readSchema(t, "waiver-record.v0.schema.json")
+	properties := mustObject(t, root["properties"], "properties")
+
+	version := mustObject(t, properties["schema_version"], "properties.schema_version")
+	assertConst(t, version, "assurectl/waivers/v0", "schema_version")
+
+	waivers := mustObject(t, properties["waivers"], "properties.waivers")
+	if got := waivers["type"]; got != "array" {
+		t.Fatalf("waivers type = %#v, want array", got)
+	}
+	items := mustObject(t, waivers["items"], "properties.waivers.items")
+	assertRef(t, items, "#/$defs/waiver_record", "waivers.items")
+
+	defs := mustObject(t, root["$defs"], "$defs")
+	waiver := mustObject(t, defs["waiver_record"], "$defs.waiver_record")
+	assertRequiredFields(t, waiver,
+		"id", "target", "scope", "reason", "accepted_risk",
+		"approver", "issued_at", "expires_at", "status", "digest",
+	)
+
+	target := mustObject(t, defs["waiver_target"], "$defs.waiver_target")
+	targetProperties := mustObject(t, target["properties"], "$defs.waiver_target.properties")
+	kind := mustObject(t, targetProperties["kind"], "$defs.waiver_target.properties.kind")
+	assertStringEnum(t, kind, []string{"REQUIREMENT"})
+
+	scope := mustObject(t, defs["waiver_scope"], "$defs.waiver_scope")
+	assertRequiredFields(t, scope, "repository_uri", "work_unit_id")
+
+	approver := mustObject(t, defs["waiver_approver"], "$defs.waiver_approver")
+	assertRequiredFields(t, approver, "identity", "authority")
+
+	waiverProperties := mustObject(t, waiver["properties"], "$defs.waiver_record.properties")
+	status := mustObject(t, waiverProperties["status"], "$defs.waiver_record.properties.status")
+	assertStringEnum(t, status, []string{"INVALID", "VALID"})
 }
 
 func TestReceiptPolicyRecordsAllResolvedSources(t *testing.T) {

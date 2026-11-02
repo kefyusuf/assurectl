@@ -1,0 +1,149 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://assurectl.dev/schemas/waiver-record.v0.schema.json",
+  "title": "AssureCTL waiver record set v0 (unstable draft)",
+  "description": "Explicit advisory waiver input for assurectl verify --waivers. Each record is a risk-acceptance claim; application is bounded by policy waivability, scope, and timing. Unstable v0 draft: syntax checks are not full JSON Schema validation.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "waivers"],
+  "properties": {
+    "schema_version": {
+      "const": "assurectl/waivers/v0"
+    },
+    "waivers": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/waiver_record"
+      }
+    }
+  },
+  "$defs": {
+    "digest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["algorithm", "value"],
+      "properties": {
+        "algorithm": {
+          "type": "string",
+          "const": "sha256"
+        },
+        "value": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "rfc3339_timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](.[0-9]+)?(Z|[+-]([01][0-9]|2[0-3]):[0-5][0-9])$"
+    },
+    "identifier": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+    },
+    "waiver_target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "id"],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": ["REQUIREMENT"]
+        },
+        "id": {
+          "$ref": "#/$defs/identifier"
+        }
+      }
+    },
+    "waiver_scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["repository_uri", "work_unit_id"],
+      "properties": {
+        "repository_uri": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "work_unit_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "head_revision": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}([0-9a-f]{24})?$"
+        }
+      }
+    },
+    "waiver_approver": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["identity", "authority"],
+      "properties": {
+        "identity": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "authority": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        }
+      }
+    },
+    "waiver_record": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "target",
+        "scope",
+        "reason",
+        "accepted_risk",
+        "approver",
+        "issued_at",
+        "expires_at",
+        "status",
+        "digest"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "target": {
+          "$ref": "#/$defs/waiver_target"
+        },
+        "scope": {
+          "$ref": "#/$defs/waiver_scope"
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "accepted_risk": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "approver": {
+          "$ref": "#/$defs/waiver_approver"
+        },
+        "issued_at": {
+          "$ref": "#/$defs/rfc3339_timestamp"
+        },
+        "expires_at": {
+          "$ref": "#/$defs/rfc3339_timestamp"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["INVALID", "VALID"]
+        },
+        "digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    }
+  }
+}
