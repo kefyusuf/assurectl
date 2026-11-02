@@ -12,6 +12,7 @@ const usage = `Usage: assurectl <command>
 
 Commands:
   version    Print version information
+  verify     Evaluate the workspace and emit an advisory receipt
   help       Show this help
 `
 
@@ -38,6 +39,8 @@ func run(args []string, stdout, stderr io.Writer) int {
 		}
 		_, _ = fmt.Fprintln(stdout, buildinfo.Summary())
 		return 0
+	case "verify":
+		return runVerify(args[1:], stdout, stderr)
 	default:
 		_, _ = fmt.Fprintf(stderr, "unknown command: %s\n\n", args[0])
 		_, _ = io.WriteString(stderr, usage)
