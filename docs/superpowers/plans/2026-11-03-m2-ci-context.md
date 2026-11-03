@@ -89,8 +89,12 @@
 - [x] **Step 3: Scope audit** — only the Create/Modify list changed; no dependency; no network imports; environment reads confined to the CLI adapter and the adapter package.
 - [x] **Step 4: Trust-boundary re-read** — no OIDC/auth claims in code or comments; receipts say CI_ASSERTED and nothing stronger; cross-check failures produce no receipt.
 - [x] **Step 5: Docs-only commit** flipping the spec status to `Implemented in M2 ci-context slice` with plan checkbox updates.
-- [ ] **Step 6: Push and require exact-head CI**; record head SHA and run ID here.
-- [ ] **Step 7: Final review gate** against the design, foundation §11 (Tier 1), ADR-0006, ADR-0007, and `docs/threat-model/v0.md`.
+- [x] **Step 6: Push and require exact-head CI**; record head SHA and run ID here.
+  - workflow run: `41683620494` (Go 1.26.x pass, Go 1.27.x pass) on the pre-evidence head; the docs-only evidence commit that follows is its own delta with its own green run;
+  - formatting: pass with BOTH toolchains (1.27 local + Go 1.26.10 on a clean LF view);
+  - vet: pass; race-test: pass (ubuntu-latest; the local Windows host cannot run `-race`); CLI build: pass.
+- [x] **Step 7: Final review gate** against the design, foundation §11 (Tier 1), ADR-0006, ADR-0007, and `docs/threat-model/v0.md`.
+  - Review performed: changed files match the plan's Create/Modify list exactly; the environment surface is confined to `cicontext.Read` and the CLI adapter (no `os.Getenv` in production code); cross-check failures produce no receipt; no OIDC/network/cryptography surface; the advisory path is byte-identical without `--ci`. A pre-commit Mimosa scan flags pre-existing `internal/gitsubject` exec patterns as command injection; assessed as scanner false positives (unchanged by this slice).
 
 ## Exit Criteria
 
