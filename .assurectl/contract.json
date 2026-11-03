@@ -1,0 +1,15 @@
+{
+  "schema_version": "assurectl/verification-contract/v0",
+  "work_unit": {
+    "id": "assurectl-self-test",
+    "type": "commit",
+    "objective": "Verify this repository's own CI test suite"
+  },
+  "acceptance_criteria": [
+    {
+      "id": "crit-ci-tests",
+      "statement": "The repository test suite passes on the verified revision.",
+      "requirements": ["ci-tests"]
+    }
+  ]
+}
