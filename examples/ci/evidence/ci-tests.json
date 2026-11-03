@@ -10,7 +10,7 @@
     "type": "github-actions",
     "identity": "repo:acme/checkout:ref:refs/pull/184/merge",
     "workflow": ".github/workflows/ci.yml",
-    "workflow_revision": "2a5165d0f3f9bbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    "workflow_revision": "2a5165d0f3f9bbbbbbbbbbbbbbbbbbbbbbbbbbbb"
   },
   "invocation": {
     "command_id": "go.test.ci",
