@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/kefyusuf/assurectl/internal/cicontext"
 	"github.com/kefyusuf/assurectl/internal/contract"
 	"github.com/kefyusuf/assurectl/internal/domain"
 	"github.com/kefyusuf/assurectl/internal/evaluation"
@@ -19,11 +20,14 @@ import (
 // Options carries the caller's verification intent. BaseRef is required: the
 // change-set boundary is caller intent and is never guessed. WaiversPath is
 // an explicit opt-in (ADR-0008): empty means no waivers, never discovery.
+// CI carries what the GitHub Actions runner asserts (M2 ci-context design):
+// assertion, not validation.
 type Options struct {
 	RepositoryURI string
 	BaseRef       string
 	HeadRef       string
 	WaiversPath   string
+	CI            *cicontext.Context
 	EvaluatedAt   time.Time
 }
 
@@ -49,6 +53,24 @@ func Run(ctx context.Context, dir string, options Options) (Result, error) {
 	})
 	if err != nil {
 		return Result{}, fmt.Errorf("verify: resolve subject: %w", err)
+	}
+
+	// The CI context is an assertion, not a validation: it only survives
+	// when it agrees with the resolved subject, fail-closed (no receipt
+	// otherwise), per the M2 ci-context design section 4.
+	authority := domain.AuthorityAdvisory
+	if options.CI != nil {
+		canonical, err := options.CI.CanonicalRepository()
+		if err != nil {
+			return Result{}, fmt.Errorf("verify: %w", err)
+		}
+		if canonical != resolution.Subject.RepositoryURI {
+			return Result{}, fmt.Errorf("verify: CI repository does not match the resolved subject repository")
+		}
+		if options.CI.SHA != resolution.Subject.HeadRevision {
+			return Result{}, fmt.Errorf("verify: CI SHA does not match the resolved head revision")
+		}
+		authority = domain.AuthorityCIAsserted
 	}
 
 	contractLoaded, err := contract.LoadLocal(dir)
@@ -100,12 +122,13 @@ func Run(ctx context.Context, dir string, options Options) (Result, error) {
 	}
 
 	built, err := receipt.Build(receipt.BuildInput{
-		Authority:   domain.AuthorityAdvisory,
+		Authority:   authority,
 		Subject:     resolution.Subject,
 		Contract:    contractLoaded,
 		Policy:      policyLoaded,
 		Evidence:    evidenceLoaded,
 		Evaluation:  evaluationResult,
+		CI:          options.CI,
 		EvaluatedAt: options.EvaluatedAt,
 	})
 	if err != nil {

@@ -291,6 +291,91 @@ func TestVerifyWaiversFlagAcceptsWithRisk(t *testing.T) {
 	}
 }
 
+func TestVerifyCIFlagEmitsCIAssertedReceipt(t *testing.T) {
+	root, head := cliFixtureWorkspace(t)
+	previous, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chdir(root); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = os.Chdir(previous) })
+
+	t.Setenv("GITHUB_REPOSITORY", "acme/checkout")
+	t.Setenv("GITHUB_SHA", head)
+	t.Setenv("GITHUB_WORKFLOW_REF", ".github/workflows/ci.yml@refs/pull/184/merge")
+	t.Setenv("GITHUB_WORKFLOW_SHA", "2a5165d0f3f9bbbbbbbbbbbbbbbbbbbbbbbbbbbb")
+	t.Setenv("GITHUB_RUN_ID", "1234567890")
+
+	stdout := &bytes.Buffer{}
+	stderr := &bytes.Buffer{}
+	args := []string{"verify", "--base", head, "--head", head, "--repository", "https://github.com/acme/checkout.git", "--ci"}
+	if code := run(args, stdout, stderr); code != 0 {
+		t.Fatalf("run() exit = %d, want 0 (stderr: %s)", code, stderr.String())
+	}
+	if !strings.Contains(stdout.String(), `"authority":"CI_ASSERTED"`) {
+		t.Fatalf("stdout = %q, want a CI_ASSERTED receipt", stdout.String())
+	}
+}
+
+func TestVerifyCIFlagFailsWithoutVariables(t *testing.T) {
+	root, head := cliFixtureWorkspace(t)
+	previous, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chdir(root); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = os.Chdir(previous) })
+
+	// Clear the required variables so the test is hermetic even on a real
+	// GitHub Actions runner.
+	for _, name := range []string{"GITHUB_REPOSITORY", "GITHUB_SHA", "GITHUB_WORKFLOW_REF", "GITHUB_WORKFLOW_SHA", "GITHUB_RUN_ID"} {
+		t.Setenv(name, "")
+	}
+
+	stdout := &bytes.Buffer{}
+	stderr := &bytes.Buffer{}
+	if code := run([]string{"verify", "--base", head, "--head", head, "--ci"}, stdout, stderr); code != 2 {
+		t.Fatalf("run() exit = %d, want 2 without CI variables", code)
+	}
+	if stdout.Len() != 0 {
+		t.Fatalf("stdout = %q, want empty on error", stdout.String())
+	}
+	if !strings.Contains(stderr.String(), "verify:") {
+		t.Fatalf("stderr = %q, want diagnostics", stderr.String())
+	}
+}
+
+func TestVerifyCIFlagValueForm(t *testing.T) {
+	root, head := cliFixtureWorkspace(t)
+	previous, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chdir(root); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = os.Chdir(previous) })
+
+	t.Setenv("GITHUB_REPOSITORY", "acme/checkout")
+	t.Setenv("GITHUB_SHA", head)
+	t.Setenv("GITHUB_WORKFLOW_REF", ".github/workflows/ci.yml@refs/pull/184/merge")
+	t.Setenv("GITHUB_WORKFLOW_SHA", "2a5165d0f3f9bbbbbbbbbbbbbbbbbbbbbbbbbbbb")
+	t.Setenv("GITHUB_RUN_ID", "1234567890")
+
+	stdout := &bytes.Buffer{}
+	stderr := &bytes.Buffer{}
+	if code := run([]string{"verify", "--base", head, "--head", head, "--repository", "https://github.com/acme/checkout.git", "--ci=false"}, stdout, stderr); code != 0 {
+		t.Fatalf("run() exit = %d, want 0 with --ci=false (stderr: %s)", code, stderr.String())
+	}
+	if strings.Contains(stdout.String(), `"authority":"CI_ASSERTED"`) {
+		t.Fatalf("stdout = %q, want an advisory receipt with --ci=false", stdout.String())
+	}
+}
+
 func TestVerifyWaiversFlagMalformedExitsTwo(t *testing.T) {
 	root, head := cliFixtureWorkspace(t)
 	previous, err := os.Getwd()

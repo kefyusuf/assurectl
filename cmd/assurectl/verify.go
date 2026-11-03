@@ -4,9 +4,11 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"os"
 	"strings"
 	"time"
 
+	"github.com/kefyusuf/assurectl/internal/cicontext"
 	"github.com/kefyusuf/assurectl/internal/domain"
 	"github.com/kefyusuf/assurectl/internal/verify"
 )
@@ -16,6 +18,7 @@ import (
 // outcome to output channels and exit codes; no domain decisions happen here.
 func runVerify(args []string, stdout, stderr io.Writer) int {
 	var base, head, repository, waivers string
+	var ci bool
 	for i := 0; i < len(args); i++ {
 		name, value, hasValue := cutFlag(args[i])
 		switch name {
@@ -37,6 +40,15 @@ func runVerify(args []string, stdout, stderr io.Writer) int {
 			case "--waivers":
 				waivers = value
 			}
+		case "--ci":
+			if hasValue {
+				if value != "true" && value != "false" {
+					return verifyUsageError("flag --ci accepts true or false", stderr)
+				}
+				ci = value == "true"
+			} else {
+				ci = true
+			}
 		default:
 			return verifyUsageError(fmt.Sprintf("unexpected argument: %s", args[i]), stderr)
 		}
@@ -48,11 +60,22 @@ func runVerify(args []string, stdout, stderr io.Writer) int {
 		head = "HEAD"
 	}
 
+	var ciContext *cicontext.Context
+	if ci {
+		context, err := cicontext.Read(os.Environ())
+		if err != nil {
+			_, _ = fmt.Fprintf(stderr, "verify: %v\n", err)
+			return 2
+		}
+		ciContext = &context
+	}
+
 	result, err := verify.Run(context.Background(), ".", verify.Options{
 		RepositoryURI: repository,
 		BaseRef:       base,
 		HeadRef:       head,
 		WaiversPath:   waivers,
+		CI:            ciContext,
 		EvaluatedAt:   time.Now().UTC().Truncate(time.Second),
 	})
 	if err != nil {
