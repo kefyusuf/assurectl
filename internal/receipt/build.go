@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/kefyusuf/assurectl/internal/buildinfo"
+	"github.com/kefyusuf/assurectl/internal/cicontext"
 	"github.com/kefyusuf/assurectl/internal/contract"
 	"github.com/kefyusuf/assurectl/internal/domain"
 	"github.com/kefyusuf/assurectl/internal/evaluation"
@@ -17,7 +18,8 @@ import (
 )
 
 // BuildInput is the closed set of externally resolved facts one receipt may
-// record. Nothing inside it is consulted as a trust root.
+// record. Nothing inside it is consulted as a trust root; CI records what
+// the runner asserts (ADR-0007: authority is resolved outside inputs).
 type BuildInput struct {
 	Authority   domain.AuthorityTier
 	Subject     domain.Subject
@@ -25,6 +27,7 @@ type BuildInput struct {
 	Policy      policy.Loaded
 	Evidence    []evidence.Loaded
 	Evaluation  evaluation.Result
+	CI          *cicontext.Context
 	EvaluatedAt time.Time
 }
 

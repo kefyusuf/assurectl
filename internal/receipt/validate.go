@@ -12,8 +12,17 @@ import (
 // validateBuildInput rejects malformed or trust-overclaiming build inputs
 // before any receipt structure exists.
 func validateBuildInput(input BuildInput) error {
-	if input.Authority != domain.AuthorityAdvisory {
-		return fmt.Errorf("authority %q is not advisory: M1 produces advisory receipts only", input.Authority)
+	switch input.Authority {
+	case domain.AuthorityAdvisory:
+		if input.CI != nil {
+			return fmt.Errorf("advisory receipts cannot carry a CI context")
+		}
+	case domain.AuthorityCIAsserted:
+		if input.CI == nil {
+			return fmt.Errorf("CI_ASSERTED receipts require the asserted CI context")
+		}
+	default:
+		return fmt.Errorf("authority %q is not producible: receipts are advisory or CI-asserted only", input.Authority)
 	}
 	if input.EvaluatedAt.IsZero() {
 		return fmt.Errorf("evaluated_at must be supplied")
