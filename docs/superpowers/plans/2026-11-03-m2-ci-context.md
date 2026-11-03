@@ -44,51 +44,51 @@
 
 **Files:** create `internal/cicontext/cicontext.go`, `internal/cicontext/cicontext_test.go`.
 
-- [ ] **Step 1: RED** — table tests for `Read(environ)`: happy path maps all eight variables; each missing required variable fails; malformed `GITHUB_SHA` (short/uppercase/non-hex) fails; malformed `GITHUB_REPOSITORY` fails; `CanonicalRepository()` returns `github.com/<owner>/<repo>`; optional variables stay empty when absent; unknown `GITHUB_*` variables are ignored.
-- [ ] **Step 2: Observe RED** (package missing).
-- [ ] **Step 3: Implement** the adapter with exact-field matching over the supplied environ slice.
-- [ ] **Step 4: GREEN** + vet.
-- [ ] **Step 5: Commit** `feat: read GitHub Actions verification context`.
+- [x] **Step 1: RED** — table tests for `Read(environ)`: happy path maps all eight variables; each missing required variable fails; malformed `GITHUB_SHA` (short/uppercase/non-hex) fails; malformed `GITHUB_REPOSITORY` fails; `CanonicalRepository()` returns `github.com/<owner>/<repo>`; optional variables stay empty when absent; unknown `GITHUB_*` variables are ignored.
+- [x] **Step 2: Observe RED** (package missing).
+- [x] **Step 3: Implement** the adapter with exact-field matching over the supplied environ slice.
+- [x] **Step 4: GREEN** + vet.
+- [x] **Step 5: Commit** `feat: read GitHub Actions verification context`.
 
 ### Task 2: Subject Cross-Checks and Authority Selection
 
 **Files:** modify `internal/verify/verify.go`; create `internal/verify/ci_test.go`.
 
-- [ ] **Step 1: RED** — integration tests: matching CI context yields a `CI_ASSERTED` receipt whose subject equals the resolved one; repository mismatch fails; SHA mismatch fails; unset `CI` keeps the advisory path byte-identical.
-- [ ] **Step 2: Observe RED.**
-- [ ] **Step 3: Implement** the cross-checks after subject resolution and before input loading; authority passes through to the receipt input.
-- [ ] **Step 4: GREEN.**
-- [ ] **Step 5: Commit** `feat: cross-check CI context against resolved subjects`.
+- [x] **Step 1: RED** — integration tests: matching CI context yields a `CI_ASSERTED` receipt whose subject equals the resolved one; repository mismatch fails; SHA mismatch fails; unset `CI` keeps the advisory path byte-identical.
+- [x] **Step 2: Observe RED.**
+- [x] **Step 3: Implement** the cross-checks after subject resolution and before input loading; authority passes through to the receipt input.
+- [x] **Step 4: GREEN.**
+- [x] **Step 5: Commit** `feat: cross-check CI context against resolved subjects`.
 
 ### Task 3: Receipt Authority
 
 **Files:** modify `internal/receipt/build.go`; create `internal/receipt/ci_test.go`.
 
-- [ ] **Step 1: RED** — `CI_ASSERTED` with `BuildInput.CI` set builds; `CI_ASSERTED` without context is rejected; `ADVISORY` with a context set is rejected; other tiers stay rejected.
-- [ ] **Step 2: Observe RED.**
-- [ ] **Step 3: Implement** the tier validation.
-- [ ] **Step 4: GREEN.**
-- [ ] **Step 5: Commit** `feat: emit CI-asserted receipt authority`.
+- [x] **Step 1: RED** — `CI_ASSERTED` with `BuildInput.CI` set builds; `CI_ASSERTED` without context is rejected; `ADVISORY` with a context set is rejected; other tiers stay rejected.
+- [x] **Step 2: Observe RED.**
+- [x] **Step 3: Implement** the tier validation.
+- [x] **Step 4: GREEN.**
+- [x] **Step 5: Commit** `feat: emit CI-asserted receipt authority`.
 
 ### Task 4: CLI Flag
 
 **Files:** modify `cmd/assurectl/verify.go`, `cmd/assurectl/verify_test.go`, `cmd/assurectl/main.go` (usage line).
 
-- [ ] **Step 1: RED** — `--ci` with a fabricated GitHub environment runs the CI-asserted path (exit 0, authority `CI_ASSERTED` in the receipt); `--ci` without the variables exits 2 with diagnostics and no receipt; `--ci=false` or omitted keeps the advisory path; `--ci value` (positional form) is a usage error.
-- [ ] **Step 2: Observe RED.**
-- [ ] **Step 3: Implement** the flag and environment wiring.
-- [ ] **Step 4: GREEN** for the whole repository.
-- [ ] **Step 5: Commit** `feat: add --ci flag for CI-asserted verification`.
+- [x] **Step 1: RED** — `--ci` with a fabricated GitHub environment runs the CI-asserted path (exit 0, authority `CI_ASSERTED` in the receipt); `--ci` without the variables exits 2 with diagnostics and no receipt; `--ci=false` or omitted keeps the advisory path; `--ci value` (positional form) is a usage error.
+- [x] **Step 2: Observe RED.**
+- [x] **Step 3: Implement** the flag and environment wiring.
+- [x] **Step 4: GREEN** for the whole repository.
+- [x] **Step 5: Commit** `feat: add --ci flag for CI-asserted verification`.
 
 ### Task 5: Full Verification, Scope Audit, and Documentation Alignment
 
 **Files:** modify only the design spec status if verified.
 
-- [ ] **Step 1: Focused tests** across `internal/cicontext`, `internal/verify`, `internal/receipt`, `cmd/assurectl`.
-- [ ] **Step 2: Required repository verification** (CONTRIBUTING.md), including both-toolchain gofmt.
-- [ ] **Step 3: Scope audit** — only the Create/Modify list changed; no dependency; no network imports; environment reads confined to the CLI adapter and the adapter package.
-- [ ] **Step 4: Trust-boundary re-read** — no OIDC/auth claims in code or comments; receipts say CI_ASSERTED and nothing stronger; cross-check failures produce no receipt.
-- [ ] **Step 5: Docs-only commit** flipping the spec status to `Implemented in M2 ci-context slice` with plan checkbox updates.
+- [x] **Step 1: Focused tests** across `internal/cicontext`, `internal/verify`, `internal/receipt`, `cmd/assurectl`.
+- [x] **Step 2: Required repository verification** (CONTRIBUTING.md), including both-toolchain gofmt.
+- [x] **Step 3: Scope audit** — only the Create/Modify list changed; no dependency; no network imports; environment reads confined to the CLI adapter and the adapter package.
+- [x] **Step 4: Trust-boundary re-read** — no OIDC/auth claims in code or comments; receipts say CI_ASSERTED and nothing stronger; cross-check failures produce no receipt.
+- [x] **Step 5: Docs-only commit** flipping the spec status to `Implemented in M2 ci-context slice` with plan checkbox updates.
 - [ ] **Step 6: Push and require exact-head CI**; record head SHA and run ID here.
 - [ ] **Step 7: Final review gate** against the design, foundation §11 (Tier 1), ADR-0006, ADR-0007, and `docs/threat-model/v0.md`.
 

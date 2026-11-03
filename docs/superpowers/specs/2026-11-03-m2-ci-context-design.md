@@ -1,6 +1,6 @@
 # M2 CI-Asserted Verification Context Design
 
-**Status:** Draft for review  
+**Status:** Implemented in M2 ci-context slice  
 **Date:** 2026-11-03  
 **Milestone:** M2 — Trusted CI evidence (slice 2 of the milestone)  
 **Base commit:** `276593160f52acf6140e7e8dab7359a182d180e7`  
