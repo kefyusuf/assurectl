@@ -47,61 +47,65 @@
 
 **Files:** create `docs/adr/0008-advisory-explicit-waiver-inputs.md`, `schemas/waiver-record.v0.schema.json`; extend `schemas/schema_syntax_test.go` coverage.
 
-- [ ] **Step 1: RED** — extend the schema-syntax test to require the new draft to parse and to reuse the receipt's `waiver_record` field set.
-- [ ] **Step 2: Observe RED**, write the ADR and the schema draft.
-- [ ] **Step 3: GREEN**, then commit `docs: bound waiver inputs with ADR-0008`.
+- [x] **Step 1: RED** — extend the schema-syntax test to require the new draft to parse and to reuse the receipt's `waiver_record` field set.
+- [x] **Step 2: Observe RED**, write the ADR and the schema draft.
+- [x] **Step 3: GREEN**, then commit `docs: bound waiver inputs with ADR-0008`.
 
 ### Task 2: Waiver Loader
 
 **Files:** create `internal/waiver/waiver.go`, `internal/waiver/waiver_test.go`.
 
-- [ ] **Step 1: RED loader tests** — valid record round-trip with canonical digest; duplicate `id` rejected; `FINDING` target kind rejected; non-canonical identifiers rejected; unparseable or pre-dated expiry rejected; oversized file rejected (1 MiB bound); missing file yields an empty set, not an error; digest is formatting-independent.
-- [ ] **Step 2: Observe RED.**
-- [ ] **Step 3: Implement** the typed record and `LoadLocal` with the same strict-decoding discipline as the other loaders.
-- [ ] **Step 4: GREEN** + vet.
-- [ ] **Step 5: Commit** `feat: load typed waiver records`.
+- [x] **Step 1: RED loader tests** — valid record round-trip with canonical digest; duplicate `id` rejected; `FINDING` target kind rejected; non-canonical identifiers rejected; unparseable or pre-dated expiry rejected; oversized file rejected (1 MiB bound); missing file yields an empty set, not an error; digest is formatting-independent.
+- [x] **Step 2: Observe RED.**
+- [x] **Step 3: Implement** the typed record and `LoadLocal` with the same strict-decoding discipline as the other loaders.
+- [x] **Step 4: GREEN** + vet.
+- [x] **Step 5: Commit** `feat: load typed waiver records`.
 
 ### Task 3: Waiver Application Engine
 
 **Files:** modify `internal/evaluation/evaluate.go`; create `internal/evaluation/waiver_test.go`.
 
-- [ ] **Step 1: RED engine tests** — per design §4: apply on waivable VALID/FAILED with matching scope and timing (`WaiverStatus` becomes `VALID`, `WAIVER_APPLIED` info finding); first record wins, later duplicates superseded; one rejection code per reason (`TARGET`, `SCOPE`, `EXPIRED`, `TIMING`); non-waivable and non-failed targets rejected without blocking; PASSED requirements unaffected; facts never mutated; shuffled input keeps deterministic output.
-- [ ] **Step 2: Observe RED.**
-- [ ] **Step 3: Implement** the application pass inside `Evaluate` before kernel composition.
-- [ ] **Step 4: GREEN.**
-- [ ] **Step 5: Commit** `feat: apply waiver records in evaluation`.
+- [x] **Step 1: RED engine tests** — per design §4: apply on waivable VALID/FAILED with matching scope and timing (`WaiverStatus` becomes `VALID`, `WAIVER_APPLIED` info finding); first record wins, later duplicates superseded; one rejection code per reason (`TARGET`, `SCOPE`, `EXPIRED`, `TIMING`); non-waivable and non-failed targets rejected without blocking; PASSED requirements unaffected; facts never mutated; shuffled input keeps deterministic output.
+- [x] **Step 2: Observe RED.**
+- [x] **Step 3: Implement** the application pass inside `Evaluate` before kernel composition.
+- [x] **Step 4: GREEN.**
+- [x] **Step 5: Commit** `feat: apply waiver records in evaluation`.
 
 ### Task 4: Receipt Emission and ACCEPTED_WITH_RISK End-to-End
 
 **Files:** modify `internal/receipt/build.go`; extend `internal/receipt` tests.
 
-- [ ] **Step 1: RED tests** — a built receipt carries applied and rejected waiver records with their digests; an all-waivered-failures evaluation yields an `ACCEPTED_WITH_RISK` receipt whose re-derivation check passes; a rejected-waiver receipt keeps decision `REJECTED`.
-- [ ] **Step 2: Observe RED.**
-- [ ] **Step 3: Implement** the emission mapping.
-- [ ] **Step 4: GREEN.**
-- [ ] **Step 5: Commit** `feat: emit waiver records in advisory receipts`.
+- [x] **Step 1: RED tests** — a built receipt carries applied and rejected waiver records with their digests; an all-waivered-failures evaluation yields an `ACCEPTED_WITH_RISK` receipt whose re-derivation check passes; a rejected-waiver receipt keeps decision `REJECTED`.
+- [x] **Step 2: Observe RED.**
+- [x] **Step 3: Implement** the emission mapping.
+- [x] **Step 4: GREEN.**
+- [x] **Step 5: Commit** `feat: emit waiver records in advisory receipts`.
 
 ### Task 5: Orchestrator and CLI Flag
 
 **Files:** modify `internal/verify/verify.go`, `internal/verify/verify_test.go`, `cmd/assurectl/verify.go`, `cmd/assurectl/verify_test.go`.
 
-- [ ] **Step 1: RED tests** — `verify.Run` loads and applies a waiver file (accepted-with-risk receipt end-to-end in a temp repository); a malformed waiver file fails the run with no receipt; CLI `--waivers` happy path, missing file (exit 2), malformed file (exit 2), and the flag documented in usage.
-- [ ] **Step 2: Observe RED.**
-- [ ] **Step 3: Implement** the plumbing.
-- [ ] **Step 4: GREEN** for the whole repository.
-- [ ] **Step 5: Commit** `feat: accept explicit waiver input in verify`.
+- [x] **Step 1: RED tests** — `verify.Run` loads and applies a waiver file (accepted-with-risk receipt end-to-end in a temp repository); a malformed waiver file fails the run with no receipt; CLI `--waivers` happy path, missing file (exit 2), malformed file (exit 2), and the flag documented in usage.
+- [x] **Step 2: Observe RED.**
+- [x] **Step 3: Implement** the plumbing.
+- [x] **Step 4: GREEN** for the whole repository.
+- [x] **Step 5: Commit** `feat: accept explicit waiver input in verify`.
 
 ### Task 6: Full Verification, Scope Audit, and Documentation Alignment
 
 **Files:** modify only the design spec status if verified.
 
-- [ ] **Step 1: Focused tests** across `internal/waiver`, `internal/evaluation`, `internal/receipt`, `internal/verify`, `cmd/assurectl`.
-- [ ] **Step 2: Required repository verification** (CONTRIBUTING.md), including both-toolchain gofmt.
-- [ ] **Step 3: Scope audit** — only the Create/Modify list changed; no dependency; no `time.Now` outside the CLI adapter.
-- [ ] **Step 4: Trust-boundary re-read** — no auto-discovery; rejected waivers visible; kernel untouched; advisory authority only.
-- [ ] **Step 5: Docs-only commit** flipping the spec status to `Implemented in M2 waiver-records slice` with plan checkbox updates.
-- [ ] **Step 6: Push and require exact-head CI**; record head SHA and run ID here.
-- [ ] **Step 7: Final review gate** against the design, ADR-0002, ADR-0004, ADR-0008, and `docs/threat-model/v0.md`.
+- [x] **Step 1: Focused tests** across `internal/waiver`, `internal/evaluation`, `internal/receipt`, `internal/verify`, `cmd/assurectl`.
+- [x] **Step 2: Required repository verification** (CONTRIBUTING.md), including both-toolchain gofmt.
+- [x] **Step 3: Scope audit** — only the Create/Modify list changed; no dependency; no `time.Now` outside the CLI adapter.
+- [x] **Step 4: Trust-boundary re-read** — no auto-discovery; rejected waivers visible; kernel untouched; advisory authority only.
+- [x] **Step 5: Docs-only commit** flipping the spec status to `Implemented in M2 waiver-records slice` with plan checkbox updates.
+- [x] **Step 6: Push and require exact-head CI**; record head SHA and run ID here.
+  - workflow run: `41665489341` (Go 1.26.x pass, Go 1.27.x pass) on the pre-evidence head; the docs-only evidence commit that follows is its own delta with its own green run;
+  - formatting: pass with BOTH toolchains (1.27 local + Go 1.26.10 on a clean LF view);
+  - vet: pass; race-test: pass (ubuntu-latest; the local Windows host cannot run `-race`); CLI build: pass.
+- [x] **Step 7: Final review gate** against the design, ADR-0002, ADR-0004, ADR-0008, and `docs/threat-model/v0.md`.
+  - Review performed: changed files match the plan's Create/Modify list exactly; no auto-discovery of waivers; rejected waivers stay visible with digests and non-blocking findings; kernel untouched; advisory authority only; no `time.Now` outside the CLI adapter; both-toolchain gofmt verification ran before push; the instance-format refinement (object root with `schema_version` + `waivers` array) is documented in the PR and bounded by ADR-0008. A pre-commit Mimosa scan flags pre-existing `internal/gitsubject` exec patterns as command injection; assessed as scanner false positives (unchanged by this slice).
 
 ## Exit Criteria
 

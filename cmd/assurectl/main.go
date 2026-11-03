@@ -13,6 +13,7 @@ const usage = `Usage: assurectl <command>
 Commands:
   version    Print version information
   verify     Evaluate the workspace and emit an advisory receipt
+             (--base is required; --head, --repository, --waivers are optional)
   help       Show this help
 `
 

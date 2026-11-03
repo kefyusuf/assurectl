@@ -1,6 +1,6 @@
 # M2 Waiver Records and Risk Acceptance Design
 
-**Status:** Draft for review  
+**Status:** Implemented in M2 waiver-records slice  
 **Date:** 2026-11-02  
 **Milestone:** M2 — Trusted CI evidence (slice 1 of the milestone)  
 **Base commit:** `91cc1fa135f7477fad90eabde8997bcc47af6ee2`  

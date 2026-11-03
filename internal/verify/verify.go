@@ -13,14 +13,17 @@ import (
 	"github.com/kefyusuf/assurectl/internal/gitsubject"
 	"github.com/kefyusuf/assurectl/internal/policy"
 	"github.com/kefyusuf/assurectl/internal/receipt"
+	"github.com/kefyusuf/assurectl/internal/waiver"
 )
 
 // Options carries the caller's verification intent. BaseRef is required: the
-// change-set boundary is caller intent and is never guessed.
+// change-set boundary is caller intent and is never guessed. WaiversPath is
+// an explicit opt-in (ADR-0008): empty means no waivers, never discovery.
 type Options struct {
 	RepositoryURI string
 	BaseRef       string
 	HeadRef       string
+	WaiversPath   string
 	EvaluatedAt   time.Time
 }
 
@@ -65,10 +68,21 @@ func Run(ctx context.Context, dir string, options Options) (Result, error) {
 		return Result{}, fmt.Errorf("verify: %w", err)
 	}
 
+	waiverRecords := []waiver.Record(nil)
+	if options.WaiversPath != "" {
+		loaded, err := waiver.LoadLocal(dir, options.WaiversPath)
+		if err != nil {
+			return Result{}, fmt.Errorf("verify: %w", err)
+		}
+		waiverRecords = loaded.Records
+	}
+
 	evaluationResult, err := evaluation.Evaluate(evaluation.Input{
 		Contract:    contractLoaded,
 		Policy:      policyLoaded,
 		Evidence:    evidenceLoaded,
+		Subject:     resolution.Subject,
+		Waivers:     waiverRecords,
 		EvaluatedAt: options.EvaluatedAt,
 	})
 	if err != nil {

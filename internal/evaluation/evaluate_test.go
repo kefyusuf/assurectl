@@ -33,7 +33,12 @@ func advisoryPolicy(requirements ...policy.Requirement) policy.Loaded {
 func advisoryContract(criteria ...contract.AcceptanceCriterion) contract.Loaded {
 	return contract.Loaded{
 		Contract: contract.Contract{
-			SchemaVersion:      contract.SchemaVersion,
+			SchemaVersion: contract.SchemaVersion,
+			WorkUnit: domain.WorkUnit{
+				ID:        "wu-001",
+				Type:      domain.WorkUnitCommit,
+				Objective: "fixture work unit",
+			},
 			AcceptanceCriteria: criteria,
 		},
 		Digest:      evaluationDigest("contract"),
