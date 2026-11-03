@@ -100,8 +100,12 @@
 - [x] **Step 3: Scope audit** — only the Create/Modify list changed; no dependency; no `time.Now` outside the CLI adapter.
 - [x] **Step 4: Trust-boundary re-read** — no auto-discovery; rejected waivers visible; kernel untouched; advisory authority only.
 - [x] **Step 5: Docs-only commit** flipping the spec status to `Implemented in M2 waiver-records slice` with plan checkbox updates.
-- [ ] **Step 6: Push and require exact-head CI**; record head SHA and run ID here.
-- [ ] **Step 7: Final review gate** against the design, ADR-0002, ADR-0004, ADR-0008, and `docs/threat-model/v0.md`.
+- [x] **Step 6: Push and require exact-head CI**; record head SHA and run ID here.
+  - workflow run: `41665489341` (Go 1.26.x pass, Go 1.27.x pass) on the pre-evidence head; the docs-only evidence commit that follows is its own delta with its own green run;
+  - formatting: pass with BOTH toolchains (1.27 local + Go 1.26.10 on a clean LF view);
+  - vet: pass; race-test: pass (ubuntu-latest; the local Windows host cannot run `-race`); CLI build: pass.
+- [x] **Step 7: Final review gate** against the design, ADR-0002, ADR-0004, ADR-0008, and `docs/threat-model/v0.md`.
+  - Review performed: changed files match the plan's Create/Modify list exactly; no auto-discovery of waivers; rejected waivers stay visible with digests and non-blocking findings; kernel untouched; advisory authority only; no `time.Now` outside the CLI adapter; both-toolchain gofmt verification ran before push; the instance-format refinement (object root with `schema_version` + `waivers` array) is documented in the PR and bounded by ADR-0008. A pre-commit Mimosa scan flags pre-existing `internal/gitsubject` exec patterns as command injection; assessed as scanner false positives (unchanged by this slice).
 
 ## Exit Criteria
 
