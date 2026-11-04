@@ -79,8 +79,11 @@
 - [x] **Step 2: Scope audit** — no `internal/`/`cmd/` changes; no dependency; no schema change.
 - [x] **Step 3: Trust-boundary re-read** — no enforcement claims; non-blocking gate recorded; assertion wording consistent.
 - [x] **Step 4: Docs-only commit** flipping the spec status to `Implemented in M2 action-guidance slice` with plan checkbox updates.
-- [ ] **Step 5: Push and require exact-head CI** — this slice's own `verify` job is part of the evidence; record head SHA and run IDs here.
-- [ ] **Step 6: Final review gate** against the design, foundation §11 (Tier 1), ADR-0006, ADR-0007, and `docs/threat-model/v0.md`.
+- [x] **Step 5: Push and require exact-head CI** — this slice's own `verify` job is part of the evidence; record head SHA and run IDs here.
+  - Final green run: `41876278171` (Go 1.26.x pass, Go 1.27.x pass, `Verify with own evidence` pass) on head `5e474cc` — the dogfooding loop emitted a real `CI_ASSERTED` receipt: `verdict=PASSED decision=APPROVED`, subject binding EXACT on the merge revision, one non-blocking `SUBJECT_DIRTY_WORKTREE` finding (the downloaded evidence is untracked in the checkout).
+  - Three real integration defects were diagnosed and fixed during the first dogfooding runs, each caught by the evaluator's fail-closed design, none by loosening it: `HEAD~1` rejected by the resolver's ambiguity rule (fixed by passing the PR base object id), shallow checkout missing the base object (fixed with `fetch-depth: 0`), and a bare `github.com/...` value rejected as an explicit repository input (fixed with the `https://...git` form). A latent probabilistic flake in a pre-existing `gitsubject` leak test (decimal temp-dir basename colliding with the hex digest) was also fixed by dropping the basename assertion while keeping the full-path leak guarantee.
+- [x] **Step 6: Final review gate** against the design, foundation §11 (Tier 1), ADR-0006, ADR-0007, and `docs/threat-model/v0.md`.
+  - Review performed: no production Go code changed (scope = action.yml, CI workflow, `.assurectl/`, examples, guidance); both-toolchain gofmt clean; the flaky-assertion fix was a test-defect repair documented above, not a guarantee weakening; the guidance claims nothing beyond implemented behavior; the gate stays non-blocking per the design. A pre-commit Mimosa scan flags pre-existing `internal/gitsubject` exec patterns as command injection; assessed as scanner false positives (unchanged by this slice).
 
 ## Exit Criteria
 
