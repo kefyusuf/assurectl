@@ -1,0 +1,11 @@
+{
+  "schema_version": "assurectl/policy/v0",
+  "requirements": [
+    {
+      "id": "ci-tests",
+      "evidence_type": "test-result",
+      "waivable": false,
+      "allowed_producer_types": ["github-actions"]
+    }
+  ]
+}

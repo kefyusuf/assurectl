@@ -1,0 +1,32 @@
+{
+  "schema_version": "assurectl/evidence-envelope/v0",
+  "id": "ev-ci-tests-001",
+  "type": "test-result",
+  "subject": {
+    "repository_uri": "github.com/acme/checkout",
+    "revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+  },
+  "producer": {
+    "type": "github-actions",
+    "identity": "repo:acme/checkout:ref:refs/pull/184/merge",
+    "workflow": ".github/workflows/ci.yml",
+    "workflow_revision": "2a5165d0f3f9bbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+  },
+  "invocation": {
+    "command_id": "go.test.ci",
+    "started_at": "2026-11-03T09:00:00Z",
+    "finished_at": "2026-11-03T09:04:30Z"
+  },
+  "outcome": {
+    "status": "PASSED",
+    "exit_code": 0
+  },
+  "artifact": {
+    "uri": "artifacts/test-output.txt",
+    "digest": {
+      "algorithm": "sha256",
+      "value": "426af62895d23583882105df9f48a3fee8531bc80a247def40cb4eddb4530648"
+    },
+    "media_type": "text/plain"
+  }
+}

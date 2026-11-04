@@ -121,7 +121,11 @@ func TestResolveLocalFallbackIsStableAndDoesNotLeakWorktreePath(t *testing.T) {
 	if !strings.HasPrefix(first.Subject.RepositoryURI, "local://sha256/") {
 		t.Fatalf("local repository URI = %q", first.Subject.RepositoryURI)
 	}
-	if strings.Contains(first.Subject.RepositoryURI, repo) || strings.Contains(first.Subject.RepositoryURI, filepath.Base(repo)) {
+	// The full-path check carries the leak guarantee. The digest is
+	// hexadecimal, so a decimal temp-directory basename could collide with
+	// it by chance; asserting on the basename would make this test flaky
+	// without strengthening the guarantee.
+	if strings.Contains(first.Subject.RepositoryURI, repo) {
 		t.Fatalf("local repository URI leaks worktree path: %q", first.Subject.RepositoryURI)
 	}
 }

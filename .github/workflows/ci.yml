@@ -59,3 +59,99 @@ jobs:
 
       - name: Build CLI
         run: go build -trimpath -o /tmp/assurectl ./cmd/assurectl
+
+      - name: Emit evidence envelope
+        if: success()
+        shell: bash
+        run: |
+          set -e
+          log=".assurectl/evidence/artifacts/test-output.txt"
+          mkdir -p "$(dirname "$log")"
+          started=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          set +e
+          go test ./... > "$log" 2>&1
+          code=$?
+          set -e
+          finished=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          status=PASSED
+          if [ "$code" -ne 0 ]; then status=FAILED; fi
+          digest=$(sha256sum "$log" | cut -d' ' -f1)
+          cat > .assurectl/evidence/ci-tests.json <<EOF
+          {
+            "schema_version": "assurectl/evidence-envelope/v0",
+            "id": "ev-ci-tests",
+            "type": "test-result",
+            "subject": {
+              "repository_uri": "github.com/${GITHUB_REPOSITORY}",
+              "revision": "${GITHUB_SHA}"
+            },
+            "producer": {
+              "type": "github-actions",
+              "identity": "repo:${GITHUB_REPOSITORY}:ref:${GITHUB_REF}",
+              "workflow": ".github/workflows/ci.yml",
+              "workflow_revision": "${GITHUB_WORKFLOW_SHA}"
+            },
+            "invocation": {
+              "command_id": "go.test.ci",
+              "started_at": "$started",
+              "finished_at": "$finished"
+            },
+            "outcome": {
+              "status": "$status",
+              "exit_code": $code
+            },
+            "artifact": {
+              "uri": "artifacts/test-output.txt",
+              "digest": {
+                "algorithm": "sha256",
+                "value": "$digest"
+              },
+              "media_type": "text/plain"
+            }
+          }
+          EOF
+          echo "evidence status=$status exit_code=$code"
+
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: assurectl-evidence-${{ matrix.go-version }}
+          path: .assurectl/evidence/
+          if-no-files-found: error
+
+  verify:
+    name: Verify with own evidence
+    needs: test
+    permissions:
+      contents: read
+    continue-on-error: true
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Download evidence
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: assurectl-evidence-1.27.x
+          path: .assurectl/evidence
+      - name: Verify with the reference action
+        uses: ./
+        with:
+          base-ref: ${{ github.event.pull_request.base.sha || github.sha }}
+          head-ref: HEAD
+          repository: https://github.com/${{ github.repository }}.git
+      - name: Record the decision in the summary
+        if: always()
+        shell: bash
+        run: |
+          if [ -f assurectl-receipt.json ]; then
+            decision=$(grep -o '"completion_decision":"[A-Z_]*"' assurectl-receipt.json | head -1)
+            echo "AssureCTL receipt: $decision" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "AssureCTL verify did not produce a receipt" >> "$GITHUB_STEP_SUMMARY"
+          fi

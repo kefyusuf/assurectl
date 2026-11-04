@@ -1,0 +1,56 @@
+name: 'AssureCTL verify'
+description: |
+  Runs `assurectl verify --ci` against the caller's workspace and uploads the
+  advisory receipt as an artifact. The receipt records what the GitHub Actions
+  runner asserts (CI_ASSERTED); it validates nothing about the runner identity
+  and makes no merge-grade authority claim.
+inputs:
+  base-ref:
+    description: 'Git ref the verified change set starts from (required; HEAD, a full object ID, or a fully qualified refs/... name — the resolver rejects ambiguous revision expressions).'
+    required: true
+  head-ref:
+    description: 'Git ref the verified change set ends at (default HEAD).'
+    required: false
+    default: 'HEAD'
+  repository:
+    description: 'Canonical repository identity override (optional).'
+    required: false
+    default: ''
+  waivers-path:
+    description: 'Workspace-relative waiver file to apply explicitly (optional, ADR-0008).'
+    required: false
+    default: ''
+  go-version:
+    description: 'Go toolchain used to build the evaluator.'
+    required: false
+    default: '1.27.x'
+  working-directory:
+    description: 'Workspace directory holding .assurectl inputs.'
+    required: false
+    default: '.'
+runs:
+  using: "composite"
+  steps:
+    - name: Set up Go
+      uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+      with:
+        go-version: ${{ inputs.go-version }}
+    - name: Install AssureCTL at the pinned revision
+      shell: bash
+      run: go install github.com/kefyusuf/assurectl/cmd/assurectl@6afd63d352a6fe1e008c98c3911d9dbc6ebe1aaa
+    - name: Verify and record the receipt
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        set -o pipefail
+        assurectl verify --ci \
+          --base "${{ inputs.base-ref }}" \
+          --head "${{ inputs.head-ref }}" \
+          --repository "${{ inputs.repository }}" \
+          --waivers "${{ inputs.waivers-path }}" \
+          | tee "$GITHUB_WORKSPACE/assurectl-receipt.json"
+    - name: Upload the receipt
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      with:
+        name: assurectl-receipt
+        path: assurectl-receipt.json
