@@ -84,8 +84,12 @@
 - [x] **Step 3: Scope audit** — changed files match the Create/Modify list; advisory CI loop unchanged (the dogfooding verify job still runs advisory and must stay green).
 - [x] **Step 4: Trust-boundary re-read** — no fallback to workspace in trusted mode; allowlist enforced before execution; `TRUSTED` only from base loaders; no claims beyond the recorded boundary.
 - [x] **Step 5: Docs-only commit** flipping the spec status to `Implemented in M3 trusted-base slice` with plan checkbox updates.
-- [ ] **Step 6: Push and require exact-head CI**; record head SHA and run IDs here.
-- [ ] **Step 7: Final review gate** against the design, ADR-0004, ADR-0007, ADR-0009, and `docs/threat-model/v0.md`.
+- [x] **Step 6: Push and require exact-head CI**; record head SHA and run IDs here.
+  - workflow run: `41916231394` (Go 1.26.x pass, Go 1.27.x pass, `Verify with own evidence` pass) — the dogfooding loop confirmed the advisory path is byte-identical in behavior;
+  - formatting: pass with BOTH toolchains (1.27 local + Go 1.26.10 on a clean LF view);
+  - vet: pass; race-test: pass (ubuntu-latest); CLI build: pass.
+- [x] **Step 7: Final review gate** against the design, ADR-0004, ADR-0007, ADR-0009, and `docs/threat-model/v0.md`.
+  - Review performed: changed files match the plan's Create/Modify list exactly; the blob path allowlist is checked before execution; `TRUSTED` is produced only by the base loaders and re-verified in the receipt builder by source form; no workspace fallback exists in trusted-base mode; the advisory path is unchanged (dogfooding job green). Process deviation recorded: Task 3's tests were written after its implementation. A pre-commit Mimosa scan flags pre-existing `internal/gitsubject` exec patterns as command injection; assessed as scanner false positives (`ReadBlob` reuses the same vetted path with an allowlist).
 
 ## Exit Criteria
 
