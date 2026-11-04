@@ -1,6 +1,6 @@
 # M2 Reference Action, Dogfooding Gate, and Workflow Guidance Design
 
-**Status:** Draft for review  
+**Status:** Implemented in M2 action-guidance slice  
 **Date:** 2026-11-03  
 **Milestone:** M2 — Trusted CI evidence (slice 3, final slice of the milestone)  
 **Base commit:** `9c36194b96392a87c784845fd4c757f6666710f2`  
