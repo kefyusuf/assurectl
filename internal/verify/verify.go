@@ -21,12 +21,14 @@ import (
 // change-set boundary is caller intent and is never guessed. WaiversPath is
 // an explicit opt-in (ADR-0008): empty means no waivers, never discovery.
 // CI carries what the GitHub Actions runner asserts (M2 ci-context design):
-// assertion, not validation.
+// assertion, not validation. TrustedBase reads the gate documents from the
+// resolved base revision (ADR-0009) and dominates the authority tier.
 type Options struct {
 	RepositoryURI string
 	BaseRef       string
 	HeadRef       string
 	WaiversPath   string
+	TrustedBase   bool
 	CI            *cicontext.Context
 	EvaluatedAt   time.Time
 }
@@ -57,8 +59,16 @@ func Run(ctx context.Context, dir string, options Options) (Result, error) {
 
 	// The CI context is an assertion, not a validation: it only survives
 	// when it agrees with the resolved subject, fail-closed (no receipt
-	// otherwise), per the M2 ci-context design section 4.
+	// otherwise), per the M2 ci-context design section 4. Trusted-base mode
+	// dominates the tier: the receipt claims the strongest authority the
+	// caller actually earned (ADR-0009).
 	authority := domain.AuthorityAdvisory
+	switch {
+	case options.TrustedBase:
+		authority = domain.AuthorityAuthoritative
+	case options.CI != nil:
+		authority = domain.AuthorityCIAsserted
+	}
 	if options.CI != nil {
 		canonical, err := options.CI.CanonicalRepository()
 		if err != nil {
@@ -70,16 +80,28 @@ func Run(ctx context.Context, dir string, options Options) (Result, error) {
 		if options.CI.SHA != resolution.Subject.HeadRevision {
 			return Result{}, fmt.Errorf("verify: CI SHA does not match the resolved head revision")
 		}
-		authority = domain.AuthorityCIAsserted
 	}
 
-	contractLoaded, err := contract.LoadLocal(dir)
-	if err != nil {
-		return Result{}, fmt.Errorf("verify: %w", err)
-	}
-	policyLoaded, err := policy.LoadLocal(dir)
-	if err != nil {
-		return Result{}, fmt.Errorf("verify: %w", err)
+	var contractLoaded contract.Loaded
+	var policyLoaded policy.Loaded
+	if options.TrustedBase {
+		contractLoaded, err = contract.LoadBase(ctx, dir, resolution.Subject.BaseRevision)
+		if err != nil {
+			return Result{}, fmt.Errorf("verify: %w", err)
+		}
+		policyLoaded, err = policy.LoadBase(ctx, dir, resolution.Subject.BaseRevision)
+		if err != nil {
+			return Result{}, fmt.Errorf("verify: %w", err)
+		}
+	} else {
+		contractLoaded, err = contract.LoadLocal(dir)
+		if err != nil {
+			return Result{}, fmt.Errorf("verify: %w", err)
+		}
+		policyLoaded, err = policy.LoadLocal(dir)
+		if err != nil {
+			return Result{}, fmt.Errorf("verify: %w", err)
+		}
 	}
 	if len(policyLoaded.Policy.Requirements) == 0 {
 		return Result{}, fmt.Errorf("verify: policy defines no requirements")

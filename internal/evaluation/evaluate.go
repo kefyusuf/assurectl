@@ -383,8 +383,12 @@ func validateContractInput(loaded contract.Loaded) error {
 	if err := validateDigest(loaded.Digest); err != nil {
 		return fmt.Errorf("contract digest: %w", err)
 	}
-	if loaded.TrustStatus != inputmeta.TrustStatusUntrusted {
-		return fmt.Errorf("contract trust status %q is not advisory workspace input", loaded.TrustStatus)
+	switch loaded.TrustStatus {
+	case inputmeta.TrustStatusUntrusted, inputmeta.TrustStatusTrusted:
+		// Advisory workspace or trusted-base provenance (ADR-0009); the
+		// receipt builder re-verifies the trusted source form.
+	default:
+		return fmt.Errorf("contract trust status %q is not a loader-produced value", loaded.TrustStatus)
 	}
 	return nil
 }
@@ -396,11 +400,12 @@ func validatePolicyInput(loaded policy.Loaded) error {
 	if err := validateDigest(loaded.Digest); err != nil {
 		return fmt.Errorf("policy digest: %w", err)
 	}
-	if loaded.TrustStatus != inputmeta.TrustStatusUntrusted {
-		return fmt.Errorf("policy trust status %q is not advisory workspace input", loaded.TrustStatus)
-	}
-	if loaded.AuthorityBasis != inputmeta.AuthorityBasisAdvisoryWorkspace {
-		return fmt.Errorf("policy authority basis %q is not advisory workspace input", loaded.AuthorityBasis)
+	advisory := loaded.TrustStatus == inputmeta.TrustStatusUntrusted &&
+		loaded.AuthorityBasis == inputmeta.AuthorityBasisAdvisoryWorkspace
+	trustedBase := loaded.TrustStatus == inputmeta.TrustStatusTrusted &&
+		loaded.AuthorityBasis == inputmeta.AuthorityBasisTrustedBase
+	if !advisory && !trustedBase {
+		return fmt.Errorf("policy provenance %q / %q is not a loader-produced pair", loaded.TrustStatus, loaded.AuthorityBasis)
 	}
 	return nil
 }

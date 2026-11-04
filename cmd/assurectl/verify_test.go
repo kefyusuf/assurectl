@@ -376,6 +376,44 @@ func TestVerifyCIFlagValueForm(t *testing.T) {
 	}
 }
 
+func TestVerifyTrustedBaseFlagRoutes(t *testing.T) {
+	root, head := cliFixtureWorkspace(t)
+	previous, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chdir(root); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = os.Chdir(previous) })
+
+	// The fixture's base revision carries no committed .assurectl
+	// documents, so trusted-base mode must fail closed (exit 2, no
+	// receipt) while the advisory path stays green.
+	stdout := &bytes.Buffer{}
+	stderr := &bytes.Buffer{}
+	args := []string{"verify", "--base", head, "--head", head, "--repository", "https://github.com/acme/checkout.git", "--trusted-base"}
+	if code := run(args, stdout, stderr); code != 2 {
+		t.Fatalf("run() exit = %d, want 2 without base documents (stderr: %s)", code, stderr.String())
+	}
+	if stdout.Len() != 0 {
+		t.Fatalf("stdout = %q, want empty on error", stdout.String())
+	}
+	if !strings.Contains(stderr.String(), "load base") {
+		t.Fatalf("stderr = %q, want a base-load diagnostic", stderr.String())
+	}
+
+	stdout = &bytes.Buffer{}
+	stderr = &bytes.Buffer{}
+	args = []string{"verify", "--base", head, "--head", head, "--repository", "https://github.com/acme/checkout.git", "--trusted-base=false"}
+	if code := run(args, stdout, stderr); code != 0 {
+		t.Fatalf("run() exit = %d, want 0 with --trusted-base=false (stderr: %s)", code, stderr.String())
+	}
+	if strings.Contains(stdout.String(), `"authority":"AUTHORITATIVE"`) {
+		t.Fatalf("stdout = %q, want an advisory receipt with --trusted-base=false", stdout.String())
+	}
+}
+
 func TestVerifyWaiversFlagMalformedExitsTwo(t *testing.T) {
 	root, head := cliFixtureWorkspace(t)
 	previous, err := os.Getwd()

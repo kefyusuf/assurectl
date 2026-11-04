@@ -58,11 +58,12 @@ func Build(input BuildInput) (Receipt, error) {
 					AuthorityBasis: inputmeta.AuthorityBasisAdvisoryWorkspace,
 				},
 				{
-					Layer:          LayerProject,
-					Source:         input.Policy.Source,
-					Digest:         input.Policy.Digest,
-					TrustStatus:    input.Policy.TrustStatus,
-					AuthorityBasis: input.Policy.AuthorityBasis,
+					Layer:           LayerProject,
+					Source:          input.Policy.Source,
+					Digest:          input.Policy.Digest,
+					TrustStatus:     input.Policy.TrustStatus,
+					AuthorityBasis:  input.Policy.AuthorityBasis,
+					RevisionBinding: projectRevisionBinding(input.Policy.AuthorityBasis),
 				},
 			},
 			EffectiveDigest: input.Policy.Digest,
@@ -152,6 +153,16 @@ func builtinDigest() inputmeta.Digest {
 	// The protocol baseline is compiled in; its recorded digest identifies
 	// the built-in definition rather than a policy file.
 	return inputmeta.SHA256([]byte(BuiltinProtocolBaselineSource))
+}
+
+// projectRevisionBinding marks the trusted-base project layer as bound to
+// the receipt subject's base object (ADR-0009); advisory layers bind to
+// nothing.
+func projectRevisionBinding(basis inputmeta.AuthorityBasis) string {
+	if basis == inputmeta.AuthorityBasisTrustedBase {
+		return "SUBJECT_BASE"
+	}
+	return ""
 }
 
 // JSON renders the receipt as deterministic compact JSON.
