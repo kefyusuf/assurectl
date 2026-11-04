@@ -144,7 +144,7 @@ jobs:
         with:
           base-ref: ${{ github.event.pull_request.base.sha || github.sha }}
           head-ref: HEAD
-          repository: github.com/${{ github.repository }}
+          repository: https://github.com/${{ github.repository }}.git
       - name: Record the decision in the summary
         if: always()
         shell: bash
