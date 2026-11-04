@@ -6,7 +6,7 @@ description: |
   and makes no merge-grade authority claim.
 inputs:
   base-ref:
-    description: 'Git ref the verified change set starts from (required).'
+    description: 'Git ref the verified change set starts from (required; HEAD, a full object ID, or a fully qualified refs/... name — the resolver rejects ambiguous revision expressions).'
     required: true
   head-ref:
     description: 'Git ref the verified change set ends at (default HEAD).'

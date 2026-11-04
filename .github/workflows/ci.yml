@@ -141,7 +141,7 @@ jobs:
       - name: Verify with the reference action
         uses: ./
         with:
-          base-ref: HEAD~1
+          base-ref: ${{ github.event.pull_request.base.sha || github.sha }}
           head-ref: HEAD
           repository: github.com/${{ github.repository }}
       - name: Record the decision in the summary
