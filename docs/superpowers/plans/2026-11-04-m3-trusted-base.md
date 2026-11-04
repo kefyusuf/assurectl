@@ -43,47 +43,47 @@
 
 **Files:** create `docs/adr/0009-trusted-base-input-resolution.md`; modify `internal/inputmeta/meta.go` + its tests.
 
-- [ ] **Step 1: RED** — extend `inputmeta` tests to require the two new values to exist and validate.
-- [ ] **Step 2: Observe RED**, write the ADR (boundary per design §2) and the vocabulary values.
-- [ ] **Step 3: GREEN**, then commit `docs: bound trusted-base resolution with ADR-0009`.
+- [x] **Step 1: RED** — extend `inputmeta` tests to require the two new values to exist and validate.
+- [x] **Step 2: Observe RED**, write the ADR (boundary per design §2) and the vocabulary values.
+- [x] **Step 3: GREEN**, then commit `docs: bound trusted-base resolution with ADR-0009`.
 
 ### Task 2: Base Blob Reader
 
 **Files:** create `internal/gitsubject/blob.go`, `internal/gitsubject/blob_test.go`.
 
-- [ ] **Step 1: RED** — table tests with temporary repositories: happy path reads both allowlisted documents at a resolved revision; missing blob errors; every non-allowlisted path (including traversal forms) errors before execution; unresolved/short revision errors; nested worktree works.
-- [ ] **Step 2: Observe RED.**
-- [ ] **Step 3: Implement** `ReadBlob` reusing the resolver's execution machinery.
-- [ ] **Step 4: GREEN** + vet.
-- [ ] **Step 5: Commit** `feat: read allowlisted base blobs through the vetted Git path`.
+- [x] **Step 1: RED** — table tests with temporary repositories: happy path reads both allowlisted documents at a resolved revision; missing blob errors; every non-allowlisted path (including traversal forms) errors before execution; unresolved/short revision errors; nested worktree works.
+- [x] **Step 2: Observe RED.**
+- [x] **Step 3: Implement** `ReadBlob` reusing the resolver's execution machinery.
+- [x] **Step 4: GREEN** + vet.
+- [x] **Step 5: Commit** `feat: read allowlisted base blobs through the vetted Git path`.
 
 ### Task 3: Base Loaders
 
 **Files:** create `internal/policy/loadbase_test.go`, `internal/contract/loadbase_test.go`; modify both loaders.
 
-- [ ] **Step 1: RED** — mirror the workspace loader tables: valid documents load with `TRUSTED`/`TRUSTED_BASE` and `base:<revision>:<path>` sources; malformed base documents fail closed; digests are canonical; the same base bytes load identically across repeated calls.
-- [ ] **Step 2: Observe RED.**
-- [ ] **Step 3: Implement** the shared-code entry points.
-- [ ] **Step 4: GREEN.**
-- [ ] **Step 5: Commit** `feat: load policy and contract from the base revision`.
+- [x] **Step 1: RED** — mirror the workspace loader tables: valid documents load with `TRUSTED`/`TRUSTED_BASE` and `base:<revision>:<path>` sources; malformed base documents fail closed; digests are canonical; the same base bytes load identically across repeated calls.
+- [x] **Step 2: Observe RED.**
+- [x] **Step 3: Implement** the shared-code entry points.
+- [x] **Step 4: GREEN.**
+- [x] **Step 5: Commit** `feat: load policy and contract from the base revision`.
 
 ### Task 4: Orchestration, Receipt Authority, and CLI
 
 **Files:** modify `internal/verify/verify.go`, `internal/receipt/build.go`, `internal/receipt/validate.go`, `cmd/assurectl/verify.go`, `cmd/assurectl/main.go`; create `internal/verify/trustedbase_test.go`, `internal/receipt/authoritative_test.go`.
 
-- [ ] **Step 1: RED** — integration tests: candidate workspace policy differing from base policy yields an authoritative receipt recording the BASE policy digest; missing base policy errors with no receipt; advisory mode byte-identical without the flag; `--trusted-base` composes with `--ci`; receipt tests: `AUTHORITATIVE` requires trusted inputs and the `SUBJECT_BASE` marker, hand-forged `TRUSTED` sources are rejected.
-- [ ] **Step 2: Observe RED.**
-- [ ] **Step 3: Implement** the mode plumbing, builder validation, and CLI flag (usage line updated).
-- [ ] **Step 4: GREEN** for the whole repository.
-- [ ] **Step 5: Commit** `feat: add trusted-base verification mode`.
+- [x] **Step 1: RED** — integration tests: candidate workspace policy differing from base policy yields an authoritative receipt recording the BASE policy digest; missing base policy errors with no receipt; advisory mode byte-identical without the flag; `--trusted-base` composes with `--ci`; receipt tests: `AUTHORITATIVE` requires trusted inputs and the `SUBJECT_BASE` marker, hand-forged `TRUSTED` sources are rejected.
+- [x] **Step 2: Observe RED.**
+- [x] **Step 3: Implement** the mode plumbing, builder validation, and CLI flag (usage line updated).
+- [x] **Step 4: GREEN** for the whole repository.
+- [x] **Step 5: Commit** `feat: add trusted-base verification mode`.
 
 ### Task 5: Full Verification, Scope Audit, and Documentation Alignment
 
-- [ ] **Step 1: Focused tests** across the touched packages.
-- [ ] **Step 2: Required repository verification** (CONTRIBUTING.md) + both-toolchain gofmt.
-- [ ] **Step 3: Scope audit** — changed files match the Create/Modify list; advisory CI loop unchanged (the dogfooding verify job still runs advisory and must stay green).
-- [ ] **Step 4: Trust-boundary re-read** — no fallback to workspace in trusted mode; allowlist enforced before execution; `TRUSTED` only from base loaders; no claims beyond the recorded boundary.
-- [ ] **Step 5: Docs-only commit** flipping the spec status to `Implemented in M3 trusted-base slice` with plan checkbox updates.
+- [x] **Step 1: Focused tests** across the touched packages.
+- [x] **Step 2: Required repository verification** (CONTRIBUTING.md) + both-toolchain gofmt.
+- [x] **Step 3: Scope audit** — changed files match the Create/Modify list; advisory CI loop unchanged (the dogfooding verify job still runs advisory and must stay green).
+- [x] **Step 4: Trust-boundary re-read** — no fallback to workspace in trusted mode; allowlist enforced before execution; `TRUSTED` only from base loaders; no claims beyond the recorded boundary.
+- [x] **Step 5: Docs-only commit** flipping the spec status to `Implemented in M3 trusted-base slice` with plan checkbox updates.
 - [ ] **Step 6: Push and require exact-head CI**; record head SHA and run IDs here.
 - [ ] **Step 7: Final review gate** against the design, ADR-0004, ADR-0007, ADR-0009, and `docs/threat-model/v0.md`.
 
