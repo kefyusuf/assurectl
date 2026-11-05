@@ -1,6 +1,6 @@
 # M3 Gate Flip and Required-Check Pinning Design
 
-**Status:** Draft for review  
+**Status:** Implemented in M3 gate-flip slice  
 **Date:** 2026-11-05  
 **Milestone:** M3 — GitHub App and merge authority (slice 2 of the milestone)  
 **Base commit:** `cb2af1cf62fdfee76c7dbd827148e33c2cc8e3c9`  
