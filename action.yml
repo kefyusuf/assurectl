@@ -20,6 +20,10 @@ inputs:
     description: 'Workspace-relative waiver file to apply explicitly (optional, ADR-0008).'
     required: false
     default: ''
+  trusted-base:
+    description: 'Resolve the gate documents from the base revision and emit an AUTHORITATIVE receipt (ADR-0009).'
+    required: false
+    default: 'false'
   go-version:
     description: 'Go toolchain used to build the evaluator.'
     required: false
@@ -48,6 +52,7 @@ runs:
           --head "${{ inputs.head-ref }}" \
           --repository "${{ inputs.repository }}" \
           --waivers "${{ inputs.waivers-path }}" \
+          --trusted-base "${{ inputs.trusted-base }}" \
           | tee "$GITHUB_WORKSPACE/assurectl-receipt.json"
     - name: Upload the receipt
       uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
