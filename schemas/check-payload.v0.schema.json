@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://assurectl.dev/schemas/check-payload.v0.schema.json",
+  "title": "AssureCTL app check payload v0 (unstable draft)",
+  "description": "The check-run payload the reference GitHub App posts (ADR-0010). The conclusion is mapped from the receipt's completion_decision exactly as the CLI exit codes are; it never overrides the receipt. Unstable v0 draft: syntax checks are not full JSON Schema validation.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["name", "conclusion", "title", "summary", "receipt_reference"],
+  "properties": {
+    "name": {
+      "const": "assurectl"
+    },
+    "conclusion": {
+      "type": "string",
+      "enum": ["failure", "neutral", "success"]
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "summary": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 65536
+    },
+    "receipt_reference": {
+      "$ref": "#/$defs/receipt_reference"
+    }
+  },
+  "$defs": {
+    "receipt_reference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["change_set_digest", "receipt_sha256", "authority"],
+      "properties": {
+        "change_set_digest": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "receipt_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "authority": {
+          "type": "string",
+          "enum": ["ADVISORY", "AUTHORITATIVE", "CI_ASSERTED"]
+        }
+      }
+    }
+  }
+}

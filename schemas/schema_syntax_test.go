@@ -16,8 +16,8 @@ func TestSchemaRootsAreStrictValidJSON(t *testing.T) {
 		t.Fatalf("filepath.Glob() error = %v", err)
 	}
 	sort.Strings(paths)
-	if len(paths) != 5 {
-		t.Fatalf("schema count = %d, want 5: %v", len(paths), paths)
+	if len(paths) != 6 {
+		t.Fatalf("schema count = %d, want 6: %v", len(paths), paths)
 	}
 
 	for _, path := range paths {
@@ -46,6 +46,27 @@ func TestSchemaRootsAreStrictValidJSON(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestCheckPayloadDraftMatchesAppProtocol(t *testing.T) {
+	root := readSchema(t, "check-payload.v0.schema.json")
+	properties := mustObject(t, root["properties"], "properties")
+
+	name := mustObject(t, properties["name"], "properties.name")
+	assertConst(t, name, "assurectl", "name")
+
+	conclusion := mustObject(t, properties["conclusion"], "properties.conclusion")
+	assertStringEnum(t, conclusion, []string{"failure", "neutral", "success"})
+
+	reference := mustObject(t, properties["receipt_reference"], "properties.receipt_reference")
+	assertRef(t, reference, "#/$defs/receipt_reference", "receipt_reference")
+
+	defs := mustObject(t, root["$defs"], "$defs")
+	receiptReference := mustObject(t, defs["receipt_reference"], "$defs.receipt_reference")
+	assertRequiredFields(t, receiptReference, "change_set_digest", "receipt_sha256", "authority")
+	referenceProperties := mustObject(t, receiptReference["properties"], "$defs.receipt_reference.properties")
+	authority := mustObject(t, referenceProperties["authority"], "$defs.receipt_reference.properties.authority")
+	assertStringEnum(t, authority, []string{"ADVISORY", "AUTHORITATIVE", "CI_ASSERTED"})
 }
 
 func TestWaiverRecordDraftMatchesReceiptDefinition(t *testing.T) {
