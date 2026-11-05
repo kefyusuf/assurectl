@@ -20,6 +20,10 @@ inputs:
     description: 'Workspace-relative waiver file to apply explicitly (optional, ADR-0008).'
     required: false
     default: ''
+  trusted-base:
+    description: 'Resolve the gate documents from the base revision and emit an AUTHORITATIVE receipt (ADR-0009).'
+    required: false
+    default: 'false'
   go-version:
     description: 'Go toolchain used to build the evaluator.'
     required: false
@@ -37,7 +41,7 @@ runs:
         go-version: ${{ inputs.go-version }}
     - name: Install AssureCTL at the pinned revision
       shell: bash
-      run: go install github.com/kefyusuf/assurectl/cmd/assurectl@6afd63d352a6fe1e008c98c3911d9dbc6ebe1aaa
+      run: go install github.com/kefyusuf/assurectl/cmd/assurectl@fd967dc332eb76f319ccbf80308d5790a4393e08
     - name: Verify and record the receipt
       shell: bash
       working-directory: ${{ inputs.working-directory }}
@@ -48,6 +52,7 @@ runs:
           --head "${{ inputs.head-ref }}" \
           --repository "${{ inputs.repository }}" \
           --waivers "${{ inputs.waivers-path }}" \
+          --trusted-base="${{ inputs.trusted-base }}" \
           | tee "$GITHUB_WORKSPACE/assurectl-receipt.json"
     - name: Upload the receipt
       uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

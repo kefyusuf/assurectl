@@ -30,7 +30,7 @@ func TestReferenceActionShape(t *testing.T) {
 	}
 
 	for _, required := range []string{
-		"base-ref:", "head-ref:", "repository:", "waivers-path:", "go-version:", "working-directory:",
+		"base-ref:", "head-ref:", "repository:", "waivers-path:", "trusted-base:", "go-version:", "working-directory:",
 	} {
 		if !strings.Contains(document, required) {
 			t.Fatalf("input %q missing from action.yml", required)

@@ -49,6 +49,22 @@ Evidence envelopes carry artifact digests; the evaluator re-hashes every artifac
 
 Waivers load only from `--waivers <path>` (ADR-0008): a repository cannot ship a silent self-authorization. The same posture applies to your own integration — anything that relaxes the gate should be an explicit, auditable input, not an ambient file.
 
+## Making the check required
+
+This repository runs its own dogfooding verification blocking under the base gate: the `Verify with own evidence` job runs `assurectl verify --trusted-base --ci` and fails the PR's CI on a `REJECTED`/`BLOCKED` decision or any pipeline error. The receipt's authority is `AUTHORITATIVE` — the policy and contract came from the PR's base revision, so a candidate that edits its own `.assurectl/` files does not change the gate it is evaluated under.
+
+To make the check *required* for merges, add it in branch protection (repository → Settings → Branches → Branch protection rule for `main`):
+
+1. Enable **Require status checks to pass before merging**;
+2. add `Verify with own evidence` to the required checks;
+3. optionally require branches to be up to date before merging.
+
+Three boundaries to keep in mind:
+
+- **The workflow file travels with the PR.** For `pull_request` events GitHub runs the workflow definition from the merge ref, so a PR can still edit `ci.yml`. Two facts bound the window: the action installs `assurectl` at an immutable module revision, and the receipt records the base's gate. Making the check required closes most of the rest: removing the job from the workflow then shows as a missing required check.
+- **The definitive closure is the GitHub App** (next slice): checks posted from outside the repository cannot be edited by the PR.
+- **`AUTHORITATIVE` receipts assert local facts**: the gate documents came from the recorded base revision. They do not validate the runner's identity or replace branch protection.
+
 ## Outlook
 
 Later milestones replace the assertion boundary with validation: trusted-base policy resolution and a source-pinned GitHub App (M3), in-toto/DSSE/Sigstore-signed attestations with replay protection (M4). Until then, keep the verification job visible but non-blocking; when authoritative receipts arrive, flipping the gate to required is a branch-protection decision backed by a receipt whose provenance the evaluator has actually checked.
