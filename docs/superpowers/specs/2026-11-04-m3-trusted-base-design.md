@@ -1,6 +1,6 @@
 # M3 Trusted-Base Policy and Contract Resolution Design
 
-**Status:** Draft for review  
+**Status:** Implemented in M3 trusted-base slice  
 **Date:** 2026-11-04  
 **Milestone:** M3 — GitHub App and merge authority (slice 1 of the milestone)  
 **Base commit:** `15ade46128fac73dee41b894b08597e9ae3e436d`  

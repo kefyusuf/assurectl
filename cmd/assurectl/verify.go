@@ -18,7 +18,7 @@ import (
 // outcome to output channels and exit codes; no domain decisions happen here.
 func runVerify(args []string, stdout, stderr io.Writer) int {
 	var base, head, repository, waivers string
-	var ci bool
+	var ci, trustedBase bool
 	for i := 0; i < len(args); i++ {
 		name, value, hasValue := cutFlag(args[i])
 		switch name {
@@ -40,14 +40,20 @@ func runVerify(args []string, stdout, stderr io.Writer) int {
 			case "--waivers":
 				waivers = value
 			}
-		case "--ci":
+		case "--ci", "--trusted-base":
 			if hasValue {
 				if value != "true" && value != "false" {
-					return verifyUsageError("flag --ci accepts true or false", stderr)
+					return verifyUsageError(fmt.Sprintf("flag %s accepts true or false", name), stderr)
 				}
-				ci = value == "true"
-			} else {
+				if name == "--ci" {
+					ci = value == "true"
+				} else {
+					trustedBase = value == "true"
+				}
+			} else if name == "--ci" {
 				ci = true
+			} else {
+				trustedBase = true
 			}
 		default:
 			return verifyUsageError(fmt.Sprintf("unexpected argument: %s", args[i]), stderr)
@@ -75,6 +81,7 @@ func runVerify(args []string, stdout, stderr io.Writer) int {
 		BaseRef:       base,
 		HeadRef:       head,
 		WaiversPath:   waivers,
+		TrustedBase:   trustedBase,
 		CI:            ciContext,
 		EvaluatedAt:   time.Now().UTC().Truncate(time.Second),
 	})

@@ -2,6 +2,7 @@ package policy
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -10,6 +11,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
+	"github.com/kefyusuf/assurectl/internal/gitsubject"
 	"github.com/kefyusuf/assurectl/internal/inputmeta"
 	"github.com/kefyusuf/assurectl/internal/localinput"
 	"github.com/kefyusuf/assurectl/internal/strictjson"
@@ -67,31 +69,64 @@ func LoadLocal(root string) (Loaded, error) {
 		return Loaded{}, fmt.Errorf("load policy %s: %w", localPolicyPath, err)
 	}
 
+	value, err := decodePolicy(data)
+	if err != nil {
+		return Loaded{}, fmt.Errorf("load policy %s: %w", localPolicyPath, err)
+	}
+
+	return finishPolicy(value, localPolicySource, inputmeta.TrustStatusUntrusted, inputmeta.AuthorityBasisAdvisoryWorkspace), nil
+}
+
+// LoadBase reads the project policy from the subject's resolved base
+// revision (ADR-0009). There is no fallback: a base without a policy
+// document cannot produce trusted-base evaluation.
+func LoadBase(ctx context.Context, root, revision string) (Loaded, error) {
+	data, err := gitsubject.ReadBlob(ctx, root, revision, localPolicyPath)
+	if err != nil {
+		return Loaded{}, fmt.Errorf("load base policy: %w", err)
+	}
+
+	value, err := decodePolicy(data)
+	if err != nil {
+		return Loaded{}, fmt.Errorf("load base policy %s: %w", revision, err)
+	}
+
+	return finishPolicy(
+		value,
+		"base:"+revision+":"+localPolicyPath,
+		inputmeta.TrustStatusTrusted,
+		inputmeta.AuthorityBasisTrustedBase,
+	), nil
+}
+
+func decodePolicy(data []byte) (Policy, error) {
 	var raw rawPolicy
 	if err := strictjson.Decode(data, &raw); err != nil {
-		return Loaded{}, fmt.Errorf("load policy %s: %w", localPolicyPath, err)
+		return Policy{}, err
 	}
-
 	value, err := normalize(raw)
 	if err != nil {
-		return Loaded{}, fmt.Errorf("load policy %s: %w", localPolicyPath, err)
+		return Policy{}, err
 	}
 	if err := validate(value); err != nil {
-		return Loaded{}, fmt.Errorf("load policy %s: %w", localPolicyPath, err)
+		return Policy{}, err
 	}
+	return value, nil
+}
 
+func finishPolicy(value Policy, source string, trust inputmeta.TrustStatus, basis inputmeta.AuthorityBasis) Loaded {
 	canonical, err := json.Marshal(value)
 	if err != nil {
-		return Loaded{}, fmt.Errorf("load policy %s: canonicalize: %w", localPolicyPath, err)
+		// Marshal of a validated value cannot fail; fail closed regardless.
+		return Loaded{}
 	}
-
 	return Loaded{
 		Policy:         value,
-		Source:         localPolicySource,
+		Source:         source,
 		Digest:         inputmeta.SHA256(canonical),
-		TrustStatus:    inputmeta.TrustStatusUntrusted,
-		AuthorityBasis: inputmeta.AuthorityBasisAdvisoryWorkspace,
-	}, nil
+		TrustStatus:    trust,
+		AuthorityBasis: basis,
+	}
 }
 
 func normalize(raw rawPolicy) (Policy, error) {

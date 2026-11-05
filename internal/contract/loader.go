@@ -1,6 +1,7 @@
 package contract
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -9,6 +10,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/kefyusuf/assurectl/internal/domain"
+	"github.com/kefyusuf/assurectl/internal/gitsubject"
 	"github.com/kefyusuf/assurectl/internal/inputmeta"
 	"github.com/kefyusuf/assurectl/internal/localinput"
 	"github.com/kefyusuf/assurectl/internal/strictjson"
@@ -51,25 +53,54 @@ func LoadLocal(root string) (Loaded, error) {
 		return Loaded{}, fmt.Errorf("load contract %s: %w", localContractPath, err)
 	}
 
+	value, err := decodeContract(data)
+	if err != nil {
+		return Loaded{}, fmt.Errorf("load contract %s: %w", localContractPath, err)
+	}
+
+	return finishContract(value, localContractSource, inputmeta.TrustStatusUntrusted), nil
+}
+
+// LoadBase reads the verification contract from the subject's resolved base
+// revision (ADR-0009). There is no fallback: a base without a contract
+// document cannot produce trusted-base evaluation.
+func LoadBase(ctx context.Context, root, revision string) (Loaded, error) {
+	data, err := gitsubject.ReadBlob(ctx, root, revision, localContractPath)
+	if err != nil {
+		return Loaded{}, fmt.Errorf("load base contract: %w", err)
+	}
+
+	value, err := decodeContract(data)
+	if err != nil {
+		return Loaded{}, fmt.Errorf("load base contract %s: %w", revision, err)
+	}
+
+	return finishContract(value, "base:"+revision+":"+localContractPath, inputmeta.TrustStatusTrusted), nil
+}
+
+func decodeContract(data []byte) (Contract, error) {
 	var value Contract
 	if err := strictjson.Decode(data, &value); err != nil {
-		return Loaded{}, fmt.Errorf("load contract %s: %w", localContractPath, err)
+		return Contract{}, err
 	}
 	if err := validate(value); err != nil {
-		return Loaded{}, fmt.Errorf("load contract %s: %w", localContractPath, err)
+		return Contract{}, err
 	}
+	return value, nil
+}
 
+func finishContract(value Contract, source string, trust inputmeta.TrustStatus) Loaded {
 	canonical, err := json.Marshal(value)
 	if err != nil {
-		return Loaded{}, fmt.Errorf("load contract %s: canonicalize: %w", localContractPath, err)
+		// Marshal of a validated value cannot fail; fail closed regardless.
+		return Loaded{}
 	}
-
 	return Loaded{
 		Contract:    value,
-		Source:      localContractSource,
+		Source:      source,
 		Digest:      inputmeta.SHA256(canonical),
-		TrustStatus: inputmeta.TrustStatusUntrusted,
-	}, nil
+		TrustStatus: trust,
+	}
 }
 
 func validate(value Contract) error {

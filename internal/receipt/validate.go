@@ -2,12 +2,22 @@ package receipt
 
 import (
 	"fmt"
+	"regexp"
 	"time"
 
 	"github.com/kefyusuf/assurectl/internal/decision"
 	"github.com/kefyusuf/assurectl/internal/domain"
 	"github.com/kefyusuf/assurectl/internal/inputmeta"
 )
+
+// baseSourcePattern matches the source string the base loaders produce:
+// "base:<object-id>:<allowlisted-path>". Any other source claiming TRUSTED
+// is hand-forged and rejected (ADR-0009).
+var baseSourcePattern = regexp.MustCompile(`^base:[0-9a-f]{40}([0-9a-f]{24})?:\.assurectl/(policy|contract)\.json$`)
+
+func isBaseSource(source string) bool {
+	return baseSourcePattern.MatchString(source)
+}
 
 // validateBuildInput rejects malformed or trust-overclaiming build inputs
 // before any receipt structure exists.
@@ -21,8 +31,17 @@ func validateBuildInput(input BuildInput) error {
 		if input.CI == nil {
 			return fmt.Errorf("CI_ASSERTED receipts require the asserted CI context")
 		}
+	case domain.AuthorityAuthoritative:
+		if input.Contract.TrustStatus != inputmeta.TrustStatusTrusted || !isBaseSource(input.Contract.Source) {
+			return fmt.Errorf("authoritative receipts require a contract read from the base revision")
+		}
+		if input.Policy.TrustStatus != inputmeta.TrustStatusTrusted ||
+			input.Policy.AuthorityBasis != inputmeta.AuthorityBasisTrustedBase ||
+			!isBaseSource(input.Policy.Source) {
+			return fmt.Errorf("authoritative receipts require a policy read from the base revision")
+		}
 	default:
-		return fmt.Errorf("authority %q is not producible: receipts are advisory or CI-asserted only", input.Authority)
+		return fmt.Errorf("authority %q is not producible", input.Authority)
 	}
 	if input.EvaluatedAt.IsZero() {
 		return fmt.Errorf("evaluated_at must be supplied")
@@ -68,6 +87,24 @@ func validateReceipt(receipt Receipt) error {
 			if finding.Blocking {
 				return fmt.Errorf("decision %q carries blocking finding %q", receipt.CompletionDecision, finding.Code)
 			}
+		}
+	}
+	if receipt.Authority == domain.AuthorityAuthoritative {
+		if receipt.Contract.TrustStatus != inputmeta.TrustStatusTrusted ||
+			receipt.Policy.TrustStatus != inputmeta.TrustStatusTrusted {
+			return fmt.Errorf("authoritative receipts require trusted contract and policy provenance")
+		}
+		subjectBaseSeen := false
+		for _, source := range receipt.Policy.Sources {
+			if source.Layer == LayerProject {
+				if source.RevisionBinding != "SUBJECT_BASE" {
+					return fmt.Errorf("authoritative receipts require the project layer to bind to the subject base")
+				}
+				subjectBaseSeen = true
+			}
+		}
+		if !subjectBaseSeen {
+			return fmt.Errorf("authoritative receipts require a project policy layer")
 		}
 	}
 	if receipt.Verifier.Name != VerifierName || receipt.Verifier.Version == "" || receipt.Verifier.ProtocolVersion != ProtocolVersion {
