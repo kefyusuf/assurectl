@@ -41,7 +41,7 @@ runs:
         go-version: ${{ inputs.go-version }}
     - name: Install AssureCTL at the pinned revision
       shell: bash
-      run: go install github.com/kefyusuf/assurectl/cmd/assurectl@6afd63d352a6fe1e008c98c3911d9dbc6ebe1aaa
+      run: go install github.com/kefyusuf/assurectl/cmd/assurectl@fd967dc332eb76f319ccbf80308d5790a4393e08
     - name: Verify and record the receipt
       shell: bash
       working-directory: ${{ inputs.working-directory }}
