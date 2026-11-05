@@ -125,7 +125,6 @@ jobs:
     needs: test
     permissions:
       contents: read
-    continue-on-error: true
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -145,13 +144,15 @@ jobs:
           base-ref: ${{ github.event.pull_request.base.sha || github.sha }}
           head-ref: HEAD
           repository: https://github.com/${{ github.repository }}.git
+          trusted-base: true
       - name: Record the decision in the summary
         if: always()
         shell: bash
         run: |
           if [ -f assurectl-receipt.json ]; then
             decision=$(grep -o '"completion_decision":"[A-Z_]*"' assurectl-receipt.json | head -1)
-            echo "AssureCTL receipt: $decision" >> "$GITHUB_STEP_SUMMARY"
+            authority=$(grep -o '"authority":"[A-Z_]*"' assurectl-receipt.json | head -1)
+            echo "AssureCTL receipt: $decision $authority" >> "$GITHUB_STEP_SUMMARY"
           else
             echo "AssureCTL verify did not produce a receipt" >> "$GITHUB_STEP_SUMMARY"
           fi
