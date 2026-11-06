@@ -30,7 +30,7 @@ const (
 )
 
 // gitHubConfig carries the App's identity and the injectable API base URL.
-type gitHubConfig struct {
+type GitHubConfig struct {
 	APIBaseURL    string
 	AppID         int64
 	PrivateKeyPEM []byte
@@ -53,7 +53,7 @@ type installationToken struct {
 	ExpiresAt time.Time
 }
 
-func newGitHubClient(config gitHubConfig) (*githubClient, error) {
+func NewGitHubClient(config GitHubConfig) (*githubClient, error) {
 	base := strings.TrimRight(config.APIBaseURL, "/")
 	if base == "" {
 		base = defaultAPIBaseURL

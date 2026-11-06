@@ -111,7 +111,7 @@ func TestInstallationTokenExchangeAndCache(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client, err := newGitHubClient(gitHubConfig{
+	client, err := NewGitHubClient(GitHubConfig{
 		APIBaseURL:    server.URL,
 		AppID:         42,
 		PrivateKeyPEM: pemBytes,
@@ -149,7 +149,7 @@ func TestInstallationTokenErrorHidesSecrets(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client, err := newGitHubClient(gitHubConfig{APIBaseURL: server.URL, AppID: 42, PrivateKeyPEM: pemBytes})
+	client, err := NewGitHubClient(GitHubConfig{APIBaseURL: server.URL, AppID: 42, PrivateKeyPEM: pemBytes})
 	if err != nil {
 		t.Fatal(err)
 	}

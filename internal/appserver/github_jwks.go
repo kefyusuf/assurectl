@@ -9,6 +9,7 @@ import (
 	"math/big"
 	"net/http"
 	"sync"
+	"time"
 )
 
 // jwksKeySource implements KeySource by fetching and caching the issuer's
@@ -22,6 +23,13 @@ type jwksKeySource struct {
 	mu           sync.Mutex
 	keys         map[string]*rsa.PublicKey
 	refreshedFor string
+}
+
+// NewJWKSKeySource returns a KeySource that fetches and caches the issuer's
+// JWKS document from the given well-known URL (ADR-0010: the network lives
+// in the App component).
+func NewJWKSKeySource(wellKnown string) KeySource {
+	return &jwksKeySource{wellKnown: wellKnown, client: &http.Client{Timeout: 30 * time.Second}}
 }
 
 func (s *jwksKeySource) Key(kid string) (interface{}, error) {
