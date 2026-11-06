@@ -1,6 +1,6 @@
 # M3 GitHub Adapters and Self-Hosting Runbook Design
 
-**Status:** Draft for review  
+**Status:** Implemented in M3 adapters-runbook slice  
 **Date:** 2026-11-06  
 **Milestone:** M3 — GitHub App and merge authority (slice 5 of the milestone)  
 **Base commit:** `00d0588770a570c342d9c079aea15554a30bba67`  
