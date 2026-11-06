@@ -28,9 +28,11 @@ type EvidenceSource interface {
 	EvidenceBundle(ctx context.Context, installation int64, repository string, prNumber int64, headSHA string) (bundle string, ciToken string, err error)
 }
 
-// CheckPoster posts the check run for a pull request.
+// CheckPoster posts the check run for a pull request. headSHA is required
+// by the GitHub check-runs API and travels with the port, not the payload
+// protocol.
 type CheckPoster interface {
-	PostCheck(ctx context.Context, installation int64, repository string, prNumber int64, payload CheckPayload) error
+	PostCheck(ctx context.Context, installation int64, repository string, prNumber int64, headSHA string, payload CheckPayload) error
 }
 
 // ExpectedClaims names what a validated CI token must bind to.
