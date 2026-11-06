@@ -1,6 +1,6 @@
 # M4 Signed Receipts Design — In-toto Statements over DSSE with Ed25519
 
-**Status:** Draft for review  
+**Status:** Implemented in M4 signing slice  
 **Date:** 2026-11-07  
 **Milestone:** M4 — Signing, replay protection, issuer lifecycle (slice 1 of the milestone)  
 **Base commit:** `f30d3e5300975d62f68c420e0a35d742c38a0384`  

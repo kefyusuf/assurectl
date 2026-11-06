@@ -15,6 +15,9 @@ Commands:
   verify     Evaluate the workspace and emit a verification receipt
              (--base is required; --head, --repository, --waivers, --ci,
              --trusted-base are optional)
+  sign-receipt / verify-receipt
+             Sign a receipt as an in-toto attestation and verify it
+             offline against a trusted root
   help       Show this help
 `
 
@@ -43,6 +46,10 @@ func run(args []string, stdout, stderr io.Writer) int {
 		return 0
 	case "verify":
 		return runVerify(args[1:], stdout, stderr)
+	case "sign-receipt":
+		return runSignReceipt(args[1:], stdout, stderr)
+	case "verify-receipt":
+		return runVerifyReceipt(args[1:], stdout, stderr)
 	default:
 		_, _ = fmt.Fprintf(stderr, "unknown command: %s\n\n", args[0])
 		_, _ = io.WriteString(stderr, usage)

@@ -1,0 +1,19 @@
+{
+  "schema_version": "assurectl/receipt/v0",
+  "authority": "ADVISORY",
+  "subject": {
+    "repository_uri": "github.com/acme/checkout",
+    "base_revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "head_revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "change_set_algorithm": "assurectl.git-change-set/v0",
+    "change_set_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+  },
+  "work_unit": {"id": "wu-001", "type": "commit", "objective": "conformance"},
+  "requirement_results": [],
+  "findings": [],
+  "waivers": [],
+  "verification_verdict": "PASSED",
+  "completion_decision": "APPROVED",
+  "verifier": {"name": "assurectl", "version": "dev", "protocol_version": "v0"},
+  "evaluated_at": "2026-11-07T12:00:00Z"
+}
