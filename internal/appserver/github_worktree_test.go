@@ -53,6 +53,8 @@ func TestWorktreeAdapterRejectsUnresolvedRevision(t *testing.T) {
 
 	origin := t.TempDir()
 	runGitHelper(t, origin, "init")
+	runGitHelper(t, origin, "config", "user.name", "T")
+	runGitHelper(t, origin, "config", "user.email", "t@example.invalid")
 	runGitHelper(t, origin, "commit", "--allow-empty", "-m", "base", "-q")
 
 	adapter := worktreeAdapter{remote: origin, cache: t.TempDir()}
