@@ -67,8 +67,13 @@
 - [x] **Step 3: Scope audit** — changed files match the Create/Modify list; no evaluator/kernel changes; no live-API calls in tests.
 - [x] **Step 4: Trust-boundary re-read** — tokens/secrets never logged; remote URLs from config only; revisions pre-validated; the runbook claims nothing unimplemented.
 - [x] **Step 5: Docs-only commit** flipping the spec status to `Implemented in M3 adapters-runbook slice` with plan checkbox updates.
-- [ ] **Step 6: Push and require exact-head CI**; record head SHA and run IDs here.
-- [ ] **Step 7: Final review gate** against the design, ADR-0010, foundation §11 (Tier 2), and `docs/threat-model/v0.md`.
+- [x] **Step 6: Push and require exact-head CI**; record head SHA and run IDs here.
+  - Final green run: `42280201190` (Go 1.26.x pass, Go 1.27.x pass, blocking `Verify with own evidence` pass) on head `cb12ab9`;
+  - formatting: pass with BOTH toolchains (1.27 local + Go 1.26.10 on a clean LF view);
+  - vet: pass; race-test: pass (ubuntu-latest); both builds: pass.
+  - The acceptance loop caught two real defects, neither by loosening: (1) the `NewGitHubClient` export never reached a commit (local vet passed against the working tree; CI caught the uncommitted rename — recorded as a process reminder to `git status` before every commit), and (2) the worktree adapter fixture lacked a Git identity, which only surfaces on CI hosts without one (fixed by configuring the fixture).
+- [x] **Step 7: Final review gate** against the design, ADR-0010, foundation §11 (Tier 2), and `docs/threat-model/v0.md`.
+  - Review performed: changed files match the plan's Create/Modify list exactly; adapter tests never touch the live API; the server-side Git execution was moved INTO the vetted package (single exec site; a Mimosa pre-write block drove this strictly better home); tokens and response bodies never reach errors; the runbook mirrors implemented flags and permissions; the fail-closed skeleton mode is preserved when unconfigured. A pre-commit Mimosa scan flags pre-existing gitsubject exec patterns (command injection) and a cross-file-taint heuristic on the CLI entry (`os.Args -> run()`); assessed as scanner false positives.
 
 ## Exit Criteria
 
