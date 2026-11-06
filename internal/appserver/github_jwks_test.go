@@ -88,10 +88,19 @@ func TestJWKSKeySourceRefreshesOnUnknownKid(t *testing.T) {
 		t.Fatalf("refreshed key is not the rotated key")
 	}
 	if fetches != 2 {
-		t.Fatalf("JWKS fetches = %d, want exactly one refresh", fetches)
+		t.Fatalf("JWKS fetches = %d, want exactly one refresh for the rotated kid", fetches)
 	}
+	// A different unknown kid forces one more fetch (per-kid semantics); a
+	// repeated lookup of the same unknown kid does not.
 	if _, err := source.Key("never-present-kid"); err == nil {
 		t.Fatalf("Key() accepted an unknown kid after the refresh")
+	}
+	fetchesAfterThird := fetches
+	if _, err := source.Key("never-present-kid"); err == nil {
+		t.Fatalf("Key() repeated an unknown kid without refusing it")
+	}
+	if fetches != fetchesAfterThird {
+		t.Fatalf("repeated unknown kid triggered fetches = %d, want no additional fetch", fetches)
 	}
 }
 

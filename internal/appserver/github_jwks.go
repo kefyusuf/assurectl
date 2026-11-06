@@ -12,28 +12,35 @@ import (
 )
 
 // jwksKeySource implements KeySource by fetching and caching the issuer's
-// JWKS document; an unknown kid forces exactly one refresh per loaded
-// document (key rotation).
+// JWKS document; an unknown kid forces one refresh per distinct kid (key
+// rotation), and repeated lookups of a kid the issuer does not serve stop
+// hammering the issuer.
 type jwksKeySource struct {
 	wellKnown string
 	client    *http.Client
 
-	mu                 sync.Mutex
-	refreshedAfterLoad bool
-	keys               map[string]*rsa.PublicKey
+	mu           sync.Mutex
+	keys         map[string]*rsa.PublicKey
+	refreshedFor string
 }
 
 func (s *jwksKeySource) Key(kid string) (interface{}, error) {
 	s.mu.Lock()
 	key, ok := s.keys[kid]
-	canRefresh := !s.refreshedAfterLoad
+	alreadyTried := s.refreshedFor == kid
 	s.mu.Unlock()
 	if ok {
 		return key, nil
 	}
-	if !canRefresh {
+	if alreadyTried {
 		return nil, fmt.Errorf("jwks: key %q not found", kid)
 	}
+
+	// Mark the attempt before fetching so repeated lookups of a kid the
+	// issuer does not serve stop hammering the issuer.
+	s.mu.Lock()
+	s.refreshedFor = kid
+	s.mu.Unlock()
 
 	if err := s.fetch(); err != nil {
 		return nil, err
@@ -94,7 +101,6 @@ func (s *jwksKeySource) fetch() error {
 
 	s.mu.Lock()
 	s.keys = keys
-	s.refreshedAfterLoad = true
 	s.mu.Unlock()
 	return nil
 }
