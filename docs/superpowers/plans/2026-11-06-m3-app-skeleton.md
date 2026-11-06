@@ -30,51 +30,51 @@
 
 ### Task 1: Check Payload Schema
 
-- [ ] **Step 1: RED** — schema-syntax count 5 → 6; payload-shape test (`name: "assurectl"`, conclusion enum, receipt-reference block with change-set digest + receipt sha256 + authority).
-- [ ] **Step 2: Observe RED.**
-- [ ] **Step 3: Write** the draft.
-- [ ] **Step 4: GREEN.**
-- [ ] **Step 5: Commit** `feat: define the assurectl check payload protocol`.
+- [x] **Step 1: RED** — schema-syntax count 5 → 6; payload-shape test (`name: "assurectl"`, conclusion enum, receipt-reference block with change-set digest + receipt sha256 + authority).
+- [x] **Step 2: Observe RED.**
+- [x] **Step 3: Write** the draft.
+- [x] **Step 4: GREEN.**
+- [x] **Step 5: Commit** `feat: define the assurectl check payload protocol`.
 
 ### Task 2: Webhook Surface
 
-- [ ] **Step 1: RED** — HMAC table (valid signature accepts, missing/malformed/wrong-secret rejected with 401); routing table (`pull_request` opened/synchronize → core called, other actions and events → ignored 200, core not called); no secret material in error output.
-- [ ] **Step 2: Observe RED.**
-- [ ] **Step 3: Implement** `webhook.go` (signature verification, routing, JSON event parsing).
-- [ ] **Step 4: GREEN.**
-- [ ] **Step 5: Commit** `feat: verify and route app webhooks`.
+- [x] **Step 1: RED** — HMAC table (valid signature accepts, missing/malformed/wrong-secret rejected with 401); routing table (`pull_request` opened/synchronize → core called, other actions and events → ignored 200, core not called); no secret material in error output.
+- [x] **Step 2: Observe RED.**
+- [x] **Step 3: Implement** `webhook.go` (signature verification, routing, JSON event parsing).
+- [x] **Step 4: GREEN.**
+- [x] **Step 5: Commit** `feat: verify and route app webhooks`.
 
 ### Task 3: Evaluation Pipeline Core
 
-- [ ] **Step 1: RED** — pipeline tests with fixture ports: approved path emits an AUTHORITATIVE check payload carrying the receipt digests; unvalidated producer caps the payload to CI_ASSERTED claims; REJECTED/BLOCKED map to failure/neutral conclusions; worktree/evidence failures produce errors with no payload; byte-identical payloads for identical fixture events.
-- [ ] **Step 2: Observe RED.**
-- [ ] **Step 3: Implement** `pipeline.go` composing gitsubject/LoadBase/evidence/evaluation/receipt through the injected ports.
-- [ ] **Step 4: GREEN.**
-- [ ] **Step 5: Commit** `feat: compose the app evaluation pipeline`.
+- [x] **Step 1: RED** — pipeline tests with fixture ports: approved path emits an AUTHORITATIVE check payload carrying the receipt digests; unvalidated producer caps the payload to CI_ASSERTED claims; REJECTED/BLOCKED map to failure/neutral conclusions; worktree/evidence failures produce errors with no payload; byte-identical payloads for identical fixture events.
+- [x] **Step 2: Observe RED.**
+- [x] **Step 3: Implement** `pipeline.go` composing gitsubject/LoadBase/evidence/evaluation/receipt through the injected ports.
+- [x] **Step 4: GREEN.**
+- [x] **Step 5: Commit** `feat: compose the app evaluation pipeline`.
 
 ### Task 4: OIDC Validator
 
-- [ ] **Step 1: RED** — in-process RSA keys sign fixture tokens: valid token yields validated claims; each wrong binding claim (`repository`, `workflow_sha`, `sha`, `iss`, `aud`) fails; expired fails; wrong signature fails; missing token yields the unvalidated outcome.
-- [ ] **Step 2: Observe RED.**
-- [ ] **Step 3: Implement** `oidc.go` with the injectable `KeySource`.
-- [ ] **Step 4: GREEN.**
-- [ ] **Step 5: Commit** `feat: validate CI producer identity with standard OIDC`.
+- [x] **Step 1: RED** — in-process RSA keys sign fixture tokens: valid token yields validated claims; each wrong binding claim (`repository`, `workflow_sha`, `sha`, `iss`, `aud`) fails; expired fails; wrong signature fails; missing token yields the unvalidated outcome.
+- [x] **Step 2: Observe RED.**
+- [x] **Step 3: Implement** `oidc.go` with the injectable `KeySource`.
+- [x] **Step 4: GREEN.**
+- [x] **Step 5: Commit** `feat: validate CI producer identity with standard OIDC`.
 
 ### Task 5: Command Skeleton
 
-- [ ] **Step 1: RED** — flag/config tests: missing required flags exit 64 with usage; secrets read from files; `--listen` default; the HTTP handler is mounted at `/webhook`.
-- [ ] **Step 2: Observe RED.**
-- [ ] **Step 3: Implement** `cmd/assurectl-app`.
-- [ ] **Step 4: GREEN** for the whole repository.
-- [ ] **Step 5: Commit** `feat: add the assurectl-app command skeleton`.
+- [x] **Step 1: RED** — flag/config tests: missing required flags exit 64 with usage; secrets read from files; `--listen` default; the HTTP handler is mounted at `/webhook`.
+- [x] **Step 2: Observe RED.**
+- [x] **Step 3: Implement** `cmd/assurectl-app`.
+- [x] **Step 4: GREEN** for the whole repository.
+- [x] **Step 5: Commit** `feat: add the assurectl-app command skeleton`.
 
 ### Task 6: Full Verification, Scope Audit, and Documentation Alignment
 
-- [ ] **Step 1: Focused tests** across `internal/appserver`, `cmd/assurectl-app`, `schemas`.
-- [ ] **Step 2: Required repository verification** (CONTRIBUTING.md) + both-toolchain gofmt.
-- [ ] **Step 3: Scope audit** — changed files match the Create/Modify list; no network calls; no secret logging; dogfooding CI loop unchanged.
-- [ ] **Step 4: Trust-boundary re-read** — unvalidated producer context caps at CI_ASSERTED; no verdict caching; no signing; no storage.
-- [ ] **Step 5: Docs-only commit** flipping the spec status to `Implemented in M3 app-skeleton slice` with plan checkbox updates.
+- [x] **Step 1: Focused tests** across `internal/appserver`, `cmd/assurectl-app`, `schemas`.
+- [x] **Step 2: Required repository verification** (CONTRIBUTING.md) + both-toolchain gofmt.
+- [x] **Step 3: Scope audit** — changed files match the Create/Modify list; no network calls; no secret logging; dogfooding CI loop unchanged.
+- [x] **Step 4: Trust-boundary re-read** — unvalidated producer context caps at CI_ASSERTED; no verdict caching; no signing; no storage.
+- [x] **Step 5: Docs-only commit** flipping the spec status to `Implemented in M3 app-skeleton slice` with plan checkbox updates.
 - [ ] **Step 6: Push and require exact-head CI**; record head SHA and run IDs here.
 - [ ] **Step 7: Final review gate** against the design, ADR-0010, foundation §11 (Tier 2), and `docs/threat-model/v0.md`.
 

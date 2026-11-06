@@ -1,6 +1,6 @@
 # M3 OSS Reference App Skeleton Design
 
-**Status:** Draft for review  
+**Status:** Implemented in M3 app-skeleton slice  
 **Date:** 2026-11-06  
 **Milestone:** M3 — GitHub App and merge authority (slice 4 of the milestone)  
 **Base commit:** `e8d982137f13c8f702ea017e83add98add935e40`  
