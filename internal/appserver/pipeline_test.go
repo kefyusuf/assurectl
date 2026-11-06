@@ -117,7 +117,7 @@ type skeletonCheckPoster struct {
 	payloads []CheckPayload
 }
 
-func (s *skeletonCheckPoster) PostCheck(ctx context.Context, installation int64, repository string, prNumber int64, payload CheckPayload) error {
+func (s *skeletonCheckPoster) PostCheck(ctx context.Context, installation int64, repository string, prNumber int64, headSHA string, payload CheckPayload) error {
 	s.payloads = append(s.payloads, payload)
 	return nil
 }

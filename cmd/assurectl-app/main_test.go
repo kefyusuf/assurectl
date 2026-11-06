@@ -1,6 +1,8 @@
 package main
 
-import "testing"
+import (
+	"testing"
+)
 
 func TestRunAppRejectsMissingRequiredFlags(t *testing.T) {
 	t.Parallel()

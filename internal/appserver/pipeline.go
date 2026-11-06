@@ -99,7 +99,7 @@ func EvaluatePullRequest(ctx context.Context, event PullRequestEvent, deps Depen
 	}
 
 	payload := buildCheckPayload(built)
-	if err := deps.CheckPoster.PostCheck(ctx, event.InstallationID, event.Repository, event.PRNumber, payload); err != nil {
+	if err := deps.CheckPoster.PostCheck(ctx, event.InstallationID, event.Repository, event.PRNumber, event.HeadSHA, payload); err != nil {
 		return Outcome{}, fmt.Errorf("app: post check: %w", err)
 	}
 	return Outcome{Payload: payload}, nil

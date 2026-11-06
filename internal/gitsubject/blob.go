@@ -3,6 +3,9 @@ package gitsubject
 import (
 	"context"
 	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
 )
 
 // allowlistedBasePaths are the only documents ReadBlob may fetch from a
@@ -29,4 +32,37 @@ func ReadBlob(ctx context.Context, worktree, revision, path string) ([]byte, err
 		return nil, fmt.Errorf("read base blob %s at %s: %w", path, revision, err)
 	}
 	return data, nil
+}
+
+// FetchWorktree materializes a worktree at an already-resolved object id by
+// fetching it from the configured remote into a managed cache directory —
+// the server-side counterpart of ReadBlob for the reference App (ADR-0010).
+// The remote comes from App configuration, never from webhook payloads; the
+// revision must already be a resolved object id; execution reuses the same
+// vetted Git path as the resolver.
+func FetchWorktree(ctx context.Context, remote, revision, cacheDir string) (string, error) {
+	if err := validateObjectID(revision); err != nil {
+		return "", fmt.Errorf("fetch worktree: %w", err)
+	}
+	if strings.TrimSpace(remote) == "" || strings.TrimSpace(cacheDir) == "" {
+		return "", fmt.Errorf("fetch worktree: remote and cache directory are required")
+	}
+
+	worktree := filepath.Join(cacheDir, revision)
+	if _, statErr := os.Stat(filepath.Join(worktree, ".git")); statErr == nil {
+		return worktree, nil
+	}
+
+	steps := [][]string{
+		{"init", "-q", worktree},
+		{"-C", worktree, "remote", "add", "origin", remote},
+		{"-C", worktree, "fetch", "-q", "origin", revision},
+		{"-C", worktree, "checkout", "-q", "--detach", "FETCH_HEAD"},
+	}
+	for _, step := range steps {
+		if _, err := runGit(ctx, cacheDir, step...); err != nil {
+			return "", fmt.Errorf("fetch worktree: git %s: %w", strings.Join(step, " "), err)
+		}
+	}
+	return worktree, nil
 }
