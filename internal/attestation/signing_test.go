@@ -68,11 +68,14 @@ func TestVerifyEnvelopeRejectsTampering(t *testing.T) {
 
 	public, private := fixtureKey()
 	envelope := NewEnvelope(PayloadTypeReceiptV0, []byte(`{"k":"v"}`))
-	signed, err := SignEnvelope(envelope, KeyID(public), private)
-	if err != nil {
-		t.Fatal(err)
-	}
 	root := trustedRootFor(public)
+	signFresh := func() Envelope {
+		signed, err := SignEnvelope(envelope, KeyID(public), private)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return signed
+	}
 
 	tests := []struct {
 		name   string
