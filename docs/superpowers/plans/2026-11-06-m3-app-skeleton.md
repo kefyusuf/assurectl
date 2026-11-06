@@ -75,8 +75,12 @@
 - [x] **Step 3: Scope audit** — changed files match the Create/Modify list; no network calls; no secret logging; dogfooding CI loop unchanged.
 - [x] **Step 4: Trust-boundary re-read** — unvalidated producer context caps at CI_ASSERTED; no verdict caching; no signing; no storage.
 - [x] **Step 5: Docs-only commit** flipping the spec status to `Implemented in M3 app-skeleton slice` with plan checkbox updates.
-- [ ] **Step 6: Push and require exact-head CI**; record head SHA and run IDs here.
-- [ ] **Step 7: Final review gate** against the design, ADR-0010, foundation §11 (Tier 2), and `docs/threat-model/v0.md`.
+- [x] **Step 6: Push and require exact-head CI**; record head SHA and run IDs here.
+  - workflow run: `42246652158` (Go 1.26.x pass, Go 1.27.x pass, blocking `Verify with own evidence` pass);
+  - formatting: pass with BOTH toolchains (1.27 local + Go 1.26.10 on a clean LF view);
+  - vet: pass; race-test: pass (ubuntu-latest); both CLI builds: pass.
+- [x] **Step 7: Final review gate** against the design, ADR-0010, foundation §11 (Tier 2), and `docs/threat-model/v0.md`.
+  - Review performed: changed files match the plan's Create/Modify list exactly; signature verification precedes any parsing; the OIDC validator uses standard RSA only with an injectable key source; unvalidated producer context caps at ADVISORY per ADR-0010 (the app-design spec's CI_ASSERTED wording was superseded by the accepted ADR; documented); nil ports fail closed with an explicit error; no secret material reaches logs; no network calls; the dogfooding CI loop is unchanged. A pre-commit Mimosa scan flags pre-existing gitsubject exec patterns (command injection) and a new cross-file-taint heuristic on `cmd/assurectl/main.go` (`os.Args -> run()`, the standard CLI entry pattern, no injection sink); assessed as scanner false positives.
 
 ## Exit Criteria
 
