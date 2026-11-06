@@ -21,6 +21,9 @@ import (
 // CI token earns AUTHORITATIVE; anything else stays advisory (ADR-0010's
 // failure posture).
 func EvaluatePullRequest(ctx context.Context, event PullRequestEvent, deps Dependencies) (Outcome, error) {
+	if deps.WorktreeSource == nil || deps.EvidenceSource == nil || deps.CheckPoster == nil {
+		return Outcome{}, fmt.Errorf("app: ports are not wired (ADR-0010: real adapters arrive in a later slice)")
+	}
 	now := deps.Now
 	if now == nil {
 		now = func() time.Time { return time.Now().UTC().Truncate(time.Second) }
