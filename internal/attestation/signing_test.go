@@ -107,7 +107,9 @@ func TestVerifyEnvelopeRejectsTampering(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			if err := VerifyEnvelope(tt.mutate(signed), root, time.Now()); err == nil {
+			// Each subtest signs its own envelope: the mutations write to
+			// the signatures slice, and parallel subtests must not share it.
+			if err := VerifyEnvelope(tt.mutate(signFresh()), root, time.Now()); err == nil {
 				t.Fatalf("VerifyEnvelope() accepted tampering")
 			}
 		})
