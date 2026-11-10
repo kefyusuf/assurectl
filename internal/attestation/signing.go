@@ -59,54 +59,12 @@ func ParseTrustedRoot(document []byte) (TrustedRoot, error) {
 	if err := json.Unmarshal(document, &root); err != nil {
 		return TrustedRoot{}, fmt.Errorf("trusted root: parse: %w", err)
 	}
-	if root.RootVersion != 1 {
+	if root.RootVersion < 1 {
 		return TrustedRoot{}, fmt.Errorf("trusted root: root_version %d is unsupported", root.RootVersion)
 	}
-	if len(root.Issuers) == 0 {
-		return TrustedRoot{}, fmt.Errorf("trusted root: at least one issuer is required")
-	}
+	// An empty issuers list is valid: it represents a root that revokes all
+	// issuers (everything blocks, fail closed).
 	return root, nil
-}
-
-// resolveKey finds the one valid Ed25519 public key matching the key id at
-// the given instant, fail-closed.
-func (r TrustedRoot) resolveKey(keyID string, at time.Time) (ed25519.PublicKey, error) {
-	matches := 0
-	var resolved ed25519.PublicKey
-	for _, issuer := range r.Issuers {
-		from, err := time.Parse(time.RFC3339, issuer.Valid.From)
-		if err != nil {
-			return nil, fmt.Errorf("trusted root: issuer %q valid.from: %w", issuer.ID, err)
-		}
-		until, err := time.Parse(time.RFC3339, issuer.Valid.Until)
-		if err != nil {
-			return nil, fmt.Errorf("trusted root: issuer %q valid.until: %w", issuer.ID, err)
-		}
-		if at.Before(from) || at.After(until) {
-			continue
-		}
-		for _, key := range issuer.Keys {
-			if key.KeyID != keyID {
-				continue
-			}
-			raw, err := base64.StdEncoding.DecodeString(key.Ed25519Public)
-			if err != nil {
-				return nil, fmt.Errorf("trusted root: issuer %q key %q: %w", issuer.ID, key.KeyID, err)
-			}
-			if len(raw) != ed25519.PublicKeySize {
-				return nil, fmt.Errorf("trusted root: issuer %q key %q: wrong key size", issuer.ID, key.KeyID)
-			}
-			matches++
-			resolved = ed25519.PublicKey(raw)
-		}
-	}
-	if matches == 0 {
-		return nil, fmt.Errorf("trusted root: no valid issuer key for keyid %q at %s", keyID, at.Format(time.RFC3339))
-	}
-	if matches > 1 {
-		return nil, fmt.Errorf("trusted root: %d issuer keys match keyid %q", matches, keyID)
-	}
-	return resolved, nil
 }
 
 // VerifyEnvelope verifies exactly one Ed25519 signature over the DSSE PAE
@@ -120,7 +78,7 @@ func VerifyEnvelope(envelope Envelope, root TrustedRoot, at time.Time) error {
 	verified := 0
 	var lastErr error
 	for _, signature := range envelope.Signatures {
-		public, err := root.resolveKey(signature.KeyID, at)
+		public, err := root.resolveIssuerKey(signature.KeyID, at)
 		if err != nil {
 			lastErr = err
 			continue
