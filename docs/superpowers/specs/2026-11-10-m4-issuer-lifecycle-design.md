@@ -1,6 +1,6 @@
 # M4 Issuer Lifecycle Design — Signed Root Rotation and Revocation
 
-**Status:** Draft for review  
+**Status:** Implemented in M4 issuer-lifecycle slice  
 **Date:** 2026-11-10  
 **Milestone:** M4 — Signing, replay protection, issuer lifecycle (slice 2 of the milestone)  
 **Base commit:** `23eb7c8d3082b7eef07932710fa01f1c2668c605`  
