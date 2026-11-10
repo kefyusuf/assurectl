@@ -67,8 +67,12 @@
 - [x] **Step 3: Scope audit** — changed files match the Create/Modify list; no evaluator/receipt/App changes; no dependency.
 - [x] **Step 4: Trust-boundary re-read** — initial trust is a pin; new keys cannot self-introduce; rollback fails closed; no network; no secret material in logs.
 - [x] **Step 5: Docs-only commit** flipping the spec status to `Implemented in M4 issuer-lifecycle slice` with plan checkbox updates.
-- [ ] **Step 6: Push and require exact-head CI**; record head SHA and run IDs here.
-- [ ] **Step 7: Final review gate** against the design, ADR-0006, foundation §12, and `docs/threat-model/v0.md`.
+- [x] **Step 6: Push and require exact-head CI**; record head SHA and run IDs here.
+  - workflow run: `42859194659` (Go 1.26.x pass, Go 1.27.x pass, blocking `Verify with own evidence` pass);
+  - formatting: pass with BOTH toolchains (1.27 local + Go 1.26.10 on a clean LF view);
+  - vet: pass; race-test: pass (ubuntu-latest); build: pass.
+- [x] **Step 7: Final review gate** against the design, ADR-0006, foundation §12, and `docs/threat-model/v0.md`.
+  - Review performed: changed files match the plan's Create/Modify list exactly; initial trust is a pin; rollback, self-introduction, and broken chains fail closed; the empty-issuers case is a full-revocation fail-closed state; no network; no dependency; the dogfooding CI loop is unchanged. Two design refinements during implementation: ParseTrustedRoot's version check relaxed from `== 1` to `>= 1` (rotation increments it) and the empty-issuers case allowed (full revocation); both documented in the PR. A pre-commit Mimosa scan flags pre-existing gitsubject exec patterns (command injection) and a cross-file-taint heuristic on the CLI entry; assessed as scanner false positives.
 
 ## Exit Criteria
 
