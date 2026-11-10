@@ -18,6 +18,7 @@ Commands:
   sign-receipt / verify-receipt
              Sign a receipt as an in-toto attestation and verify it
              offline against a trusted root
+  sign-root  Sign a trusted-root payload for rotation and revocation
   help       Show this help
 `
 
@@ -48,6 +49,8 @@ func run(args []string, stdout, stderr io.Writer) int {
 		return runVerify(args[1:], stdout, stderr)
 	case "sign-receipt":
 		return runSignReceipt(args[1:], stdout, stderr)
+	case "sign-root":
+		return runSignRoot(args[1:], stdout, stderr)
 	case "verify-receipt":
 		return runVerifyReceipt(args[1:], stdout, stderr)
 	default:
