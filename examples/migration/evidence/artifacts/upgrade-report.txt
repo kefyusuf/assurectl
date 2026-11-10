@@ -1,0 +1,2 @@
+logrus upgraded from v1.9.2 to v1.9.3
+all tests passed

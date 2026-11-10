@@ -1,0 +1,30 @@
+{
+  "schema_version": "assurectl/evidence-envelope/v0",
+  "id": "ev-dep-upgrade-001",
+  "type": "dependency-result",
+  "subject": {
+    "repository_uri": "github.com/acme/checkout",
+    "revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+  },
+  "producer": {
+    "type": "local-user",
+    "identity": "renovate-bot"
+  },
+  "invocation": {
+    "command_id": "dep.upgrade.verify",
+    "started_at": "2026-11-10T09:00:00Z",
+    "finished_at": "2026-11-10T09:05:00Z"
+  },
+  "outcome": {
+    "status": "PASSED",
+    "exit_code": 0
+  },
+  "artifact": {
+    "uri": "artifacts/upgrade-report.txt",
+    "digest": {
+      "algorithm": "sha256",
+      "value": "f775a7f5e74215638481c2afc4998d582d314467acd7ef1ce474db840250f087"
+    },
+    "media_type": "text/plain"
+  }
+}

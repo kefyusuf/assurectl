@@ -1,0 +1,11 @@
+{
+  "schema_version": "assurectl/policy/v0",
+  "requirements": [
+    {
+      "id": "req-dep-upgrade",
+      "evidence_type": "dependency-result",
+      "waivable": false,
+      "allowed_producer_types": ["local-user", "github-actions"]
+    }
+  ]
+}
