@@ -78,7 +78,7 @@ func VerifyEnvelope(envelope Envelope, root TrustedRoot, at time.Time) error {
 	verified := 0
 	var lastErr error
 	for _, signature := range envelope.Signatures {
-		public, err := root.resolveIssuerKey(signature.KeyID, at)
+		public, err := root.ResolveIssuerKey(signature.KeyID, at)
 		if err != nil {
 			lastErr = err
 			continue

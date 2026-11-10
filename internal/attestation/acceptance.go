@@ -115,12 +115,16 @@ func base64StdDecode(value string) ([]byte, error) {
 }
 
 func base64RawDecode(value string) ([]byte, error) {
-	return base64.RawStdEncoding.DecodeString(value)
+	decoded, err := base64.RawStdEncoding.DecodeString(value)
+	if err == nil {
+		return decoded, nil
+	}
+	return base64.StdEncoding.DecodeString(value)
 }
 
-// resolveIssuerKey resolves a receipt-signing issuer key against this root
+// ResolveIssuerKey resolves a receipt-signing issuer key against this root
 // at the given instant, fail-closed (slice-1 logic, reused).
-func (r TrustedRoot) resolveIssuerKey(keyID string, at time.Time) (ed25519.PublicKey, error) {
+func (r TrustedRoot) ResolveIssuerKey(keyID string, at time.Time) (ed25519.PublicKey, error) {
 	matches := 0
 	var resolved ed25519.PublicKey
 	for _, issuer := range r.Issuers {
