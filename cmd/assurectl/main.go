@@ -19,6 +19,8 @@ Commands:
              Sign a receipt as an in-toto attestation and verify it
              offline against a trusted root
   sign-root  Sign a trusted-root payload for rotation and revocation
+  init       Scaffold .assurectl/ contract and policy for a work-unit type
+             (--type, --requirement-id, --evidence-type are required)
   help       Show this help
 `
 
@@ -47,6 +49,8 @@ func run(args []string, stdout, stderr io.Writer) int {
 		return 0
 	case "verify":
 		return runVerify(args[1:], stdout, stderr)
+	case "init":
+		return runInit(args[1:], stdout, stderr)
 	case "sign-receipt":
 		return runSignReceipt(args[1:], stdout, stderr)
 	case "sign-root":
