@@ -1,6 +1,6 @@
 # AssureCTL Foundation Design
 
-**Status:** Accepted for M0 implementation  
+**Status:** Accepted — all milestones (M0–M5) delivered  
 **Date:** 2026-09-02  
 **Repository:** `github.com/kefyusuf/assurectl`  
 **License:** Apache-2.0

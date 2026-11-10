@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/kefyusuf/assurectl/schemas/evidence-envelope.v0.schema.json",
+  "$id": "https://assurectl.dev/schemas/evidence-envelope.v0.schema.json",
   "title": "AssureCTL Evidence Envelope v0",
   "description": "Unstable v0 evidence metadata. Integrity alone does not establish trusted provenance.",
   "type": "object",

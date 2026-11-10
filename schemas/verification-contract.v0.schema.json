@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/kefyusuf/assurectl/schemas/verification-contract.v0.schema.json",
+  "$id": "https://assurectl.dev/schemas/verification-contract.v0.schema.json",
   "title": "AssureCTL Verification Contract v0",
   "description": "Unstable v0 contract schema binding a software work unit to acceptance criteria and verification requirements.",
   "type": "object",
