@@ -28,31 +28,31 @@
 
 ### Task 1: `assurectl init` Subcommand
 
-- [ ] **Step 1: RED** — init happy path per type (contract + policy files created, valid JSON, pass `LoadLocal`); fail-closed on existing files; unknown type rejected; missing required flags rejected.
-- [ ] **Step 2: Observe RED.**
-- [ ] **Step 3: Implement** `init.go` with template generation.
-- [ ] **Step 4: GREEN** + whole-repo tests.
-- [ ] **Step 5: Commit** `feat: add assurectl init for migration producers`.
+- [x] **Step 1: RED** — init happy path per type (contract + policy files created, valid JSON, pass `LoadLocal`); fail-closed on existing files; unknown type rejected; missing required flags rejected.
+- [x] **Step 2: Observe RED.**
+- [x] **Step 3: Implement** `init.go` with template generation.
+- [x] **Step 4: GREEN** + whole-repo tests.
+- [x] **Step 5: Commit** `feat: add assurectl init for migration producers`.
 
 ### Task 2: Example Fixtures
 
-- [ ] **Step 1: RED** — mirror `examples/basic` test patterns for `examples/migration/`: JSON syntax, schema versions, work-unit types, evidence digest match.
-- [ ] **Step 2: Observe RED.**
-- [ ] **Step 3: Create** fixtures for `api_migration` and `dependency_upgrade`.
-- [ ] **Step 4: GREEN.**
-- [ ] **Step 5: Commit** `feat: add migration producer example fixtures`.
+- [x] **Step 1: RED** — mirror `examples/basic` test patterns for `examples/migration/`: JSON syntax, schema versions, work-unit types, evidence digest match.
+- [x] **Step 2: Observe RED.**
+- [x] **Step 3: Create** fixtures for `api_migration` and `dependency_upgrade`.
+- [x] **Step 4: GREEN.**
+- [x] **Step 5: Commit** `feat: add migration producer example fixtures`.
 
 ### Task 3: Producer Guide
 
-- [ ] **Step 1: Write** `docs/guides/migration-producers.md` per design §3.1.
-- [ ] **Step 2: Review pass** — claims match implemented behavior.
-- [ ] **Step 3: Commit** `docs: add migration producer integration guide`.
+- [x] **Step 1: Write** `docs/guides/migration-producers.md` per design §3.1.
+- [x] **Step 2: Review pass** — claims match implemented behavior.
+- [x] **Step 3: Commit** `docs: add migration producer integration guide`.
 
 ### Task 4: Full Verification and Documentation Alignment
 
-- [ ] **Step 1: Repository verification** (CONTRIBUTING.md) + both-toolchain gofmt.
-- [ ] **Step 2: Scope audit** — no `internal/**` changes.
-- [ ] **Step 3: Docs-only commit** flipping the spec status to `Implemented in M5 migration-producers slice`.
+- [x] **Step 1: Repository verification** (CONTRIBUTING.md) + both-toolchain gofmt.
+- [x] **Step 2: Scope audit** — no `internal/**` changes.
+- [x] **Step 3: Docs-only commit** flipping the spec status to `Implemented in M5 migration-producers slice`.
 - [ ] **Step 4: Push and require exact-head CI**; record run IDs.
 - [ ] **Step 5: Final review gate** against the design, foundation §3 (product boundary), and §16 (milestone roadmap).
 
