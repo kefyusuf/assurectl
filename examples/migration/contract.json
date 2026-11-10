@@ -1,0 +1,15 @@
+{
+  "schema_version": "assurectl/verification-contract/v0",
+  "work_unit": {
+    "id": "wu-dep-upgrade-001",
+    "type": "dependency_upgrade",
+    "objective": "Upgrade github.com/sirupsen/logrus from v1.9.2 to v1.9.3"
+  },
+  "acceptance_criteria": [
+    {
+      "id": "crit-dep-upgrade",
+      "statement": "The dependency upgrade verification passes.",
+      "requirements": ["req-dep-upgrade"]
+    }
+  ]
+}

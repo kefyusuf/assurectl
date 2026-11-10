@@ -1,6 +1,6 @@
 # M5 Migration Producer Integration Design
 
-**Status:** Draft for review  
+**Status:** Implemented in M5 migration-producers slice  
 **Date:** 2026-11-10  
 **Milestone:** M5 — Integration with automated migration producers  
 **Base commit:** `66ec9e3e5a7d0b40b2cdbab7b34ee2a9b9042b3a`  

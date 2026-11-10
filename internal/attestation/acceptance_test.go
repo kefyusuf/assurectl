@@ -185,7 +185,7 @@ func TestAcceptSignedRootRevocationPropagates(t *testing.T) {
 
 	// A receipt signed by the revoked issuer key now fails verification:
 	// the trusted-root resolution runs against the newest accepted root.
-	if _, err := revoked.Root.resolveIssuerKey(KeyID(revokedIssuerKey), time.Now()); err == nil {
+	if _, err := revoked.Root.ResolveIssuerKey(KeyID(revokedIssuerKey), time.Now()); err == nil {
 		t.Fatalf("revoked issuer key still resolves")
 	}
 }
