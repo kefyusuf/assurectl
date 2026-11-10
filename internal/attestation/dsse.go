@@ -11,6 +11,14 @@ import (
 
 // PayloadTypeReceiptV0 is the DSSE payload type and in-toto predicate type
 // for an AssureCTL receipt v0 attestation.
+
+// base64Std and base64Raw are the two base64 alphabets the attestation
+// formats use (DSSE uses standard; key material may use either).
+var (
+	base64Std = base64.StdEncoding
+	base64Raw = base64.RawStdEncoding
+)
+
 const PayloadTypeReceiptV0 = "https://assurectl.dev/attestations/receipt/v0"
 
 // PAE returns the DSSE pre-authentication encoding, byte-exact per the

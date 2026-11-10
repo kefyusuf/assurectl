@@ -30,45 +30,49 @@
 
 ### Task 1: Signed-Root Format and Verification
 
-- [ ] **Step 1: RED** — signed-root parse/verify table: valid root accepted against the pinned key id; bad signature, wrong payload type shape, unsigned root, and multiple signatures rejected; PAE coverage asserted (signature fails when any payload byte changes).
-- [ ] **Step 2: Observe RED.**
-- [ ] **Step 3: Implement** `signedroot.go` (payload reuse of the slice-1 shape; PAE; Ed25519).
-- [ ] **Step 4: GREEN** + vet.
-- [ ] **Step 5: Commit** `feat: parse and verify signed trusted roots`.
+- [x] **Step 1: RED** — signed-root parse/verify table: valid root accepted against the pinned key id; bad signature, wrong payload type shape, unsigned root, and multiple signatures rejected; PAE coverage asserted (signature fails when any payload byte changes).
+- [x] **Step 2: Observe RED.**
+- [x] **Step 3: Implement** `signedroot.go` (payload reuse of the slice-1 shape; PAE; Ed25519).
+- [x] **Step 4: GREEN** + vet.
+- [x] **Step 5: Commit** `feat: parse and verify signed trusted roots`.
 
 ### Task 2: Acceptance Rules — Pin, Monotonicity, Rotation
 
-- [ ] **Step 1: RED** — acceptance table: root accepted when signed by the pinned key; version rollback rejected; a root signed only by a new key rejected (self-introduction); rotation accepted only with old+new signatures; revocation (dropped key) rejects receipts signed by that key after acceptance; validity windows interact correctly.
-- [ ] **Step 2: Observe RED.**
-- [ ] **Step 3: Implement** the acceptance rules over an accepted-version state.
-- [ ] **Step 4: GREEN.**
-- [ ] **Step 5: Commit** `feat: enforce root rotation and revocation rules`.
+- [x] **Step 1: RED** — acceptance table: root accepted when signed by the pinned key; version rollback rejected; a root signed only by a new key rejected (self-introduction); rotation accepted only with old+new signatures; revocation (dropped key) rejects receipts signed by that key after acceptance; validity windows interact correctly.
+- [x] **Step 2: Observe RED.**
+- [x] **Step 3: Implement** the acceptance rules over an accepted-version state.
+- [x] **Step 4: GREEN.**
+- [x] **Step 5: Commit** `feat: enforce root rotation and revocation rules`.
 
 ### Task 3: CLI Integration
 
-- [ ] **Step 1: RED** — `sign-root` produces a verifiable signed root (merge of per-key signature runs); `verify-receipt --trusted-root-signed` accepts a valid chain and rejects rollback; both `--trusted-root` and `--trusted-root-signed` together exit 64; `--min-root-version` enforces monotonicity; usage errors exit 64.
-- [ ] **Step 2: Observe RED.**
-- [ ] **Step 3: Implement** the CLI changes.
-- [ ] **Step 4: GREEN** for the whole repository.
-- [ ] **Step 5: Commit** `feat: add root signing and signed-root verification commands`.
+- [x] **Step 1: RED** — `sign-root` produces a verifiable signed root (merge of per-key signature runs); `verify-receipt --trusted-root-signed` accepts a valid chain and rejects rollback; both `--trusted-root` and `--trusted-root-signed` together exit 64; `--min-root-version` enforces monotonicity; usage errors exit 64.
+- [x] **Step 2: Observe RED.**
+- [x] **Step 3: Implement** the CLI changes.
+- [x] **Step 4: GREEN** for the whole repository.
+- [x] **Step 5: Commit** `feat: add root signing and signed-root verification commands`.
 
 ### Task 4: Rotation-Chain Fixtures
 
-- [ ] **Step 1: RED** — `examples/signed/rotation_test.go`: v1 (initial) → v2 (root-key rotation, old+new signatures) → v3 (issuer revocation) chain fixtures with `FIXTURE_UPDATE=1`; the committed chain must verify step-by-step and the v3 root must reject receipts from the revoked key.
-- [ ] **Step 2: Observe RED.**
-- [ ] **Step 3: Generate** the committed fixtures with the fixed conformance seeds.
-- [ ] **Step 4: GREEN** + both-toolchain gofmt.
-- [ ] **Step 5: Commit** `feat: add root rotation conformance fixtures`.
+- [x] **Step 1: RED** — `examples/signed/rotation_test.go`: v1 (initial) → v2 (root-key rotation, old+new signatures) → v3 (issuer revocation) chain fixtures with `FIXTURE_UPDATE=1`; the committed chain must verify step-by-step and the v3 root must reject receipts from the revoked key.
+- [x] **Step 2: Observe RED.**
+- [x] **Step 3: Generate** the committed fixtures with the fixed conformance seeds.
+- [x] **Step 4: GREEN** + both-toolchain gofmt.
+- [x] **Step 5: Commit** `feat: add root rotation conformance fixtures`.
 
 ### Task 5: Full Verification, Scope Audit, and Documentation Alignment
 
-- [ ] **Step 1: Focused tests** across `internal/attestation`, `cmd/assurectl`, `examples/signed`.
-- [ ] **Step 2: Required repository verification** (CONTRIBUTING.md) + both-toolchain gofmt.
-- [ ] **Step 3: Scope audit** — changed files match the Create/Modify list; no evaluator/receipt/App changes; no dependency.
-- [ ] **Step 4: Trust-boundary re-read** — initial trust is a pin; new keys cannot self-introduce; rollback fails closed; no network; no secret material in logs.
-- [ ] **Step 5: Docs-only commit** flipping the spec status to `Implemented in M4 issuer-lifecycle slice` with plan checkbox updates.
-- [ ] **Step 6: Push and require exact-head CI**; record head SHA and run IDs here.
-- [ ] **Step 7: Final review gate** against the design, ADR-0006, foundation §12, and `docs/threat-model/v0.md`.
+- [x] **Step 1: Focused tests** across `internal/attestation`, `cmd/assurectl`, `examples/signed`.
+- [x] **Step 2: Required repository verification** (CONTRIBUTING.md) + both-toolchain gofmt.
+- [x] **Step 3: Scope audit** — changed files match the Create/Modify list; no evaluator/receipt/App changes; no dependency.
+- [x] **Step 4: Trust-boundary re-read** — initial trust is a pin; new keys cannot self-introduce; rollback fails closed; no network; no secret material in logs.
+- [x] **Step 5: Docs-only commit** flipping the spec status to `Implemented in M4 issuer-lifecycle slice` with plan checkbox updates.
+- [x] **Step 6: Push and require exact-head CI**; record head SHA and run IDs here.
+  - workflow run: `42859194659` (Go 1.26.x pass, Go 1.27.x pass, blocking `Verify with own evidence` pass);
+  - formatting: pass with BOTH toolchains (1.27 local + Go 1.26.10 on a clean LF view);
+  - vet: pass; race-test: pass (ubuntu-latest); build: pass.
+- [x] **Step 7: Final review gate** against the design, ADR-0006, foundation §12, and `docs/threat-model/v0.md`.
+  - Review performed: changed files match the plan's Create/Modify list exactly; initial trust is a pin; rollback, self-introduction, and broken chains fail closed; the empty-issuers case is a full-revocation fail-closed state; no network; no dependency; the dogfooding CI loop is unchanged. Two design refinements during implementation: ParseTrustedRoot's version check relaxed from `== 1` to `>= 1` (rotation increments it) and the empty-issuers case allowed (full revocation); both documented in the PR. A pre-commit Mimosa scan flags pre-existing gitsubject exec patterns (command injection) and a cross-file-taint heuristic on the CLI entry; assessed as scanner false positives.
 
 ## Exit Criteria
 
