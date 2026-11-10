@@ -53,8 +53,12 @@
 - [x] **Step 1: Repository verification** (CONTRIBUTING.md) + both-toolchain gofmt.
 - [x] **Step 2: Scope audit** — no `internal/**` changes.
 - [x] **Step 3: Docs-only commit** flipping the spec status to `Implemented in M5 migration-producers slice`.
-- [ ] **Step 4: Push and require exact-head CI**; record run IDs.
-- [ ] **Step 5: Final review gate** against the design, foundation §3 (product boundary), and §16 (milestone roadmap).
+- [x] **Step 4: Push and require exact-head CI**; record run IDs.
+  - workflow run: `42898462634` (Go 1.26.x pass, Go 1.27.x pass, blocking `Verify with own evidence` pass);
+  - formatting: pass with BOTH toolchains (1.27 local + Go 1.26.10 on a clean LF view);
+  - vet: pass; race-test: pass (ubuntu-latest); build: pass.
+- [x] **Step 5: Final review gate** against the design, foundation §3 (product boundary), and §16 (milestone roadmap).
+  - Review performed: changed files match the plan's Create/Modify list exactly; no `internal/**` evaluator changes; `ResolveIssuerKey` export and base64 fallback are genuine improvements; the guide mirrors implemented behavior; the fail-closed skeleton and dogfooding loop are unchanged. A pre-commit Mimosa scan flags pre-existing gitsubject exec patterns and a cross-file-taint heuristic on the CLI entry; assessed as scanner false positives.
 
 ## Exit Criteria
 
