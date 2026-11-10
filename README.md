@@ -6,14 +6,19 @@ AssureCTL is an open, deterministic, revision-bound assurance authority for soft
 
 ## Status
 
-AssureCTL is in **M0 foundation development** and is not production-ready. The current codebase contains:
+**M0 through M5 of the foundation roadmap are complete.** The current codebase contains:
 
-- a buildable Go CLI shell with help and version output;
-- typed domain values for authority, evidence state, observed outcome, verdict, waiver status, and completion decision;
-- an executable, deterministic decision-precedence table;
-- initial architectural decisions, threat boundaries, and unstable v0 schema drafts.
+- a deterministic evaluator producing receipts from policy, contract, and machine-verifiable evidence;
+- `assurectl verify` for local advisory, CI-asserted, and authoritative (trusted-base) evaluation;
+- Git subject resolution with fail-closed ambiguity rejection;
+- evidence ingestion with artifact digest verification, stale/untrusted/missing detection, and set-wide fail-closed semantics;
+- a waiver engine with explicit opt-in inputs (ADR-0008);
+- signed receipts as in-toto statements over DSSE with Ed25519 and trusted-root rotation/revocation;
+- a reference GitHub Action and a self-hostable App (`assurectl-app`) posting merge-gating checks from outside the repository;
+- `assurectl init` for migration producer scaffolding;
+- a dogfooding gate: this repository's own PRs are verified blocking under the base's gate.
 
-The local `verify` workflow, Git subject resolution, evidence loading, policy parsing, receipt generation, GitHub merge authority, and signed attestations belong to later milestones.
+Not production-ready. Sigstore keyless signing, transparency logs, retention storage, and organization policy control planes are managed-scope items not yet implemented.
 
 ## Why this exists
 
@@ -83,14 +88,14 @@ The consolidated design is in [`docs/superpowers/specs/2026-09-02-assurectl-foun
 
 ## Roadmap
 
-| Milestone | Scope |
-|---|---|
-| M0 | Foundation, domain semantics, decision table, governance, schemas, CI |
-| M1 | Local advisory evaluation for exact Git revisions |
-| M2 | Trusted CI evidence envelopes and reusable GitHub Action |
-| M3 | GitHub App required-check and merge authority |
-| M4 | in-toto/DSSE/Sigstore-aligned signed attestations |
-| M5 | Self-maintaining API, SDK, framework, and dependency migration integrations |
+| Milestone | Scope | Status |
+|---|---|---|
+| M0 | Foundation, domain semantics, decision table, governance, schemas, CI | ✅ |
+| M1 | Local advisory evaluation for exact Git revisions | ✅ |
+| M2 | Trusted CI evidence envelopes, waiver engine, and reusable GitHub Action | ✅ |
+| M3 | Trusted-base resolution, GitHub App required-check, merge authority, OSS app skeleton and adapters | ✅ |
+| M4 | In-toto/DSSE signed attestations with Ed25519, trusted-root rotation and revocation | ✅ |
+| M5 | Migration producer integration (`assurectl init`, examples, guide) | ✅ |
 
 ## Contributing
 
