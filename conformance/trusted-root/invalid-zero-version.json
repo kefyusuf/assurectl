@@ -1,0 +1,8 @@
+{
+  "description": "zero root version",
+  "expect": "reject",
+  "document": {
+    "root_version": 0,
+    "issuers": []
+  }
+}

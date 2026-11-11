@@ -1,0 +1,17 @@
+{
+  "description": "invalid revision format",
+  "expect": "reject",
+  "document": {
+    "schema_version": "assurectl/evidence-envelope/v0",
+    "id": "ev-bad-rev",
+    "type": "test-result",
+    "subject": {
+      "repository_uri": "github.com/acme/checkout",
+      "revision": "not-a-revision"
+    },
+    "producer": {"type": "local-user", "identity": "conformance"},
+    "invocation": {"command_id": "test.unit", "started_at": "2026-01-01T09:00:00Z", "finished_at": "2026-01-01T09:01:00Z"},
+    "outcome": {"status": "PASSED", "exit_code": 0},
+    "artifact": {"uri": "artifacts/report.txt", "digest": {"algorithm": "sha256", "value": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"}, "media_type": "text/plain"}
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "description": "unsupported name field",
+  "expect": "reject",
+  "document": {
+    "name": "not-assurectl",
+    "conclusion": "success",
+    "title": "AssureCTL PASSED (ADVISORY)",
+    "summary": "ok",
+    "receipt_reference": {
+      "change_set_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "authority": "ADVISORY"
+    }
+  }
+}

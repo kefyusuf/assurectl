@@ -1,0 +1,15 @@
+{
+  "description": "valid failure check payload",
+  "expect": "accept",
+  "document": {
+    "name": "assurectl",
+    "conclusion": "failure",
+    "title": "AssureCTL FAILED (AUTHORITATIVE)",
+    "summary": "1 requirement(s) evaluated; 1 finding(s); verdict FAILED, decision REJECTED.",
+    "receipt_reference": {
+      "change_set_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "authority": "AUTHORITATIVE"
+    }
+  }
+}

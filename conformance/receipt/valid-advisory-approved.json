@@ -1,0 +1,26 @@
+{
+  "description": "valid advisory approved receipt",
+  "expect": "accept",
+  "document": {
+    "schema_version": "assurectl/receipt/v0",
+    "authority": "ADVISORY",
+    "subject": {
+      "repository_uri": "github.com/acme/checkout",
+      "base_revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "head_revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "change_set_algorithm": "assurectl.git-change-set/v0",
+      "change_set_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+    },
+    "work_unit": {"id": "wu-001", "type": "commit", "objective": "conformance"},
+    "contract": {"source": "workspace:.assurectl/contract.json", "digest": {"algorithm": "sha256", "value": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"}, "trust_status": "UNTRUSTED"},
+    "policy": {"sources": [], "effective_digest": {"algorithm": "sha256", "value": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"}, "trust_status": "UNTRUSTED"},
+    "evidence": [],
+    "requirement_results": [],
+    "findings": [],
+    "waivers": [],
+    "verification_verdict": "PASSED",
+    "completion_decision": "APPROVED",
+    "verifier": {"name": "assurectl", "version": "dev", "protocol_version": "v0"},
+    "evaluated_at": "2026-11-10T12:00:00Z"
+  }
+}

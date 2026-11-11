@@ -1,0 +1,14 @@
+{
+  "description": "valid initial trusted root with one issuer",
+  "expect": "accept",
+  "document": {
+    "root_version": 1,
+    "issuers": [
+      {
+        "id": "issuer-1",
+        "keys": [{"keyid": "ik-001", "ed25519_public": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"}],
+        "valid": {"from": "2026-01-01T00:00:00Z", "until": "2027-01-01T00:00:00Z"}
+      }
+    ]
+  }
+}
