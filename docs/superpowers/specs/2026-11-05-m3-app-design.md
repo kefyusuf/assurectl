@@ -1,6 +1,6 @@
 # M3 GitHub App Architecture and OSS/Managed Boundary Design
 
-**Status:** Draft for review  
+**Status:** Implemented in M3 app-skeleton and adapters-runbook slices  
 **Date:** 2026-11-05  
 **Milestone:** M3 — GitHub App and merge authority (slice 3 of the milestone)  
 **Base commit:** `b4ac52c2d9f3c7f8c5c939afdc6ffe1ab8fb8728`  

@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/kefyusuf/assurectl/schemas/policy.v0.schema.json",
+  "$id": "https://assurectl.dev/schemas/policy.v0.schema.json",
   "title": "AssureCTL Policy v0",
   "description": "Unstable v0 project-policy schema for advisory development use.",
   "type": "object",
