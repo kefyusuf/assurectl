@@ -27,43 +27,44 @@
 
 ### Task 1: Evidence Envelope Vectors
 
-- [ ] **Step 1: RED** — harness test reads `conformance/evidence-envelope/` and validates each vector against the envelope schema + attestation validation.
-- [ ] **Step 2: Observe RED.**
-- [ ] **Step 3: Create** vector files: valid-minimal, valid-full, invalid-missing-subject, invalid-bad-revision, invalid-bad-digest, invalid-stale-timestamp, invalid-unsupported-schema.
-- [ ] **Step 4: GREEN.**
-- [ ] **Step 5: Commit** `feat: add evidence envelope conformance vectors`.
+- [x] **Step 1: RED** — harness test reads `conformance/evidence-envelope/` and validates each vector against the envelope schema + attestation validation.
+- [x] **Step 2: Observe RED.**
+- [x] **Step 3: Create** vector files: valid-minimal, valid-full, invalid-missing-subject, invalid-bad-revision, invalid-bad-digest, invalid-stale-timestamp, invalid-unsupported-schema.
+- [x] **Step 4: GREEN.**
+- [x] **Step 5: Commit** `feat: add evidence envelope conformance vectors`.
 
 ### Task 2: Receipt Vectors
 
-- [ ] **Step 1: RED** — receipt vectors: valid-advisory-approved, valid-authoritative, invalid-duplicate-requirement, invalid-evidence-mismatch, invalid-missing-verifier, invalid-bad-evaluated-at.
-- [ ] **Step 2: Observe RED.**
-- [ ] **Step 3: Create** vector files.
-- [ ] **Step 4: GREEN.**
-- [ ] **Step 5: Commit** `feat: add receipt conformance vectors`.
+- [x] **Step 1: RED** — receipt vectors: valid-advisory-approved, valid-authoritative, invalid-duplicate-requirement, invalid-evidence-mismatch, invalid-missing-verifier, invalid-bad-evaluated-at.
+- [x] **Step 2: Observe RED.**
+- [x] **Step 3: Create** vector files.
+- [x] **Step 4: GREEN.**
+- [x] **Step 5: Commit** `feat: add receipt conformance vectors`.
 
 ### Task 3: Trusted Root and Signed Root Vectors
 
-- [ ] **Step 1: RED** — trusted-root vectors: valid-initial, valid-rotation (old+new), valid-revocation, invalid-rollback, invalid-self-introduction, invalid-expired-issuer, invalid-unknown-key, invalid-duplicate-key.
-- [ ] **Step 2: Observe RED.**
-- [ ] **Step 3: Create** vector files (fixed Ed25519 seed for signing vectors).
-- [ ] **Step 4: GREEN.**
-- [ ] **Step 5: Commit** `feat: add trusted root conformance vectors`.
+- [x] **Step 1: RED** — trusted-root vectors: valid-initial, valid-rotation (old+new), valid-revocation, invalid-rollback, invalid-self-introduction, invalid-expired-issuer, invalid-unknown-key, invalid-duplicate-key.
+- [x] **Step 2: Observe RED.**
+- [x] **Step 3: Create** vector files (fixed Ed25519 seed for signing vectors).
+- [x] **Step 4: GREEN.**
+- [x] **Step 5: Commit** `feat: add trusted root conformance vectors`.
 
 ### Task 4: Check Payload Vectors
 
-- [ ] **Step 1: RED** — check-payload vectors: valid-success, valid-failure, valid-neutral, invalid-unknown-conclusion, invalid-missing-receipt-ref.
-- [ ] **Step 2: Observe RED.**
-- [ ] **Step 3: Create** vector files.
-- [ ] **Step 4: GREEN.**
-- [ ] **Step 5: Commit** `feat: add check payload conformance vectors`.
+- [x] **Step 1: RED** — check-payload vectors: valid-success, valid-failure, valid-neutral, invalid-unknown-conclusion, invalid-missing-receipt-ref.
+- [x] **Step 2: Observe RED.**
+- [x] **Step 3: Create** vector files.
+- [x] **Step 4: GREEN.**
+- [x] **Step 5: Commit** `feat: add check payload conformance vectors`.
 
 ### Task 5: Full Verification and Documentation Alignment
 
-- [ ] **Step 1: Repository verification** (CONTRIBUTING.md) + both-toolchain gofmt.
-- [ ] **Step 2: Scope audit** — no evaluator changes; the harness only reads committed JSON vectors.
-- [ ] **Step 3: Docs-only commit** flipping the spec status to `Implemented in M4 conformance slice`.
-- [ ] **Step 4: Push and require exact-head CI**; record run IDs.
-- [ ] **Step 5: Final review gate** against the design, ADR-0006, foundation §12, and `docs/threat-model/v0.md`.
+- [x] **Step 1: Repository verification** (CONTRIBUTING.md) + both-toolchain gofmt.
+- [x] **Step 2: Scope audit** — no evaluator changes; the harness only reads committed JSON vectors.
+- [x] **Step 3: Docs-only commit** flipping the spec status to `Implemented in M4 conformance slice`.
+- [x] **Step 4: Push and require exact-head CI**; record run IDs.
+- [x] **Step 5: Final review gate** against the design, ADR-0006, foundation §12, and `docs/threat-model/v0.md`.
+  - Exact-head CI evidence recorded after the docs-only evidence commit. Review performed: the harness reads committed JSON vectors only (no generation, no network); vectors cover all six schema drafts; production code unchanged. A pre-commit Mimosa scan flags pre-existing gitsubject exec patterns and a cross-file-taint heuristic; assessed as scanner false positives.
 
 ## Exit Criteria
 

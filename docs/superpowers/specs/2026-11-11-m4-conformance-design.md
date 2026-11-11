@@ -1,6 +1,6 @@
 # M4 Conformance Suite Design
 
-**Status:** Draft for review  
+**Status:** Implemented in M4 conformance slice  
 **Date:** 2026-11-11  
 **Milestone:** M4 — Signing, replay protection, issuer lifecycle (slice 3 of the milestone)  
 **Base commit:** `d70d6801efc51ded7fb4b4c905c735f17ea3560c`  
