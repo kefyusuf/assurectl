@@ -1,0 +1,8 @@
+{
+  "description": "empty issuers (full revocation, fail closed)",
+  "expect": "accept",
+  "document": {
+    "root_version": 2,
+    "issuers": []
+  }
+}

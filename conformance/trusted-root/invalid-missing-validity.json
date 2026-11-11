@@ -1,0 +1,13 @@
+{
+  "description": "issuer with missing validity window",
+  "expect": "reject",
+  "document": {
+    "root_version": 1,
+    "issuers": [
+      {
+        "id": "issuer-1",
+        "keys": [{"keyid": "ik-001", "ed25519_public": "AAAA"}]
+      }
+    ]
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "description": "unsupported conclusion",
+  "expect": "reject",
+  "document": {
+    "name": "assurectl",
+    "conclusion": "skipped",
+    "title": "AssureCTL PASSED (ADVISORY)",
+    "summary": "ok",
+    "receipt_reference": {
+      "change_set_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "authority": "ADVISORY"
+    }
+  }
+}
