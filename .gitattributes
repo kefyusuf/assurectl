@@ -1,0 +1,15 @@
+# Normalize all text files to LF in both the repository and the working
+# tree. This ensures that artifact digests computed on one platform match
+# those computed on another, and that gofmt is consistent across platforms.
+* text=auto eol=lf
+
+# Windows-specific files that require CRLF.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Binary files (never normalize).
+*.png binary
+*.jpg binary
+*.ico binary
+*.zip binary
+*.gz binary
