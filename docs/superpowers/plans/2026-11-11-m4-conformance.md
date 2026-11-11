@@ -63,7 +63,11 @@
 - [x] **Step 2: Scope audit** — no evaluator changes; the harness only reads committed JSON vectors.
 - [x] **Step 3: Docs-only commit** flipping the spec status to `Implemented in M4 conformance slice`.
 - [x] **Step 4: Push and require exact-head CI**; record run IDs.
+  - workflow run: `43072328635` (Go 1.26.x pass, Go 1.27.x pass, blocking `Verify with own evidence` pass);
+  - formatting: pass with BOTH toolchains (1.27 local + Go 1.26.10 on a clean LF view);
+  - vet: pass; race-test: pass (ubuntu-latest); build: pass.
 - [x] **Step 5: Final review gate** against the design, ADR-0006, foundation §12, and `docs/threat-model/v0.md`.
+  - Review performed: no production code changes; the harness reads committed JSON vectors only (no generation, no network); vectors cover all six schema drafts; production code unchanged. A pre-commit Mimosa scan flags pre-existing gitsubject exec patterns and a cross-file-taint heuristic; assessed as scanner false positives.
   - Exact-head CI evidence recorded after the docs-only evidence commit. Review performed: the harness reads committed JSON vectors only (no generation, no network); vectors cover all six schema drafts; production code unchanged. A pre-commit Mimosa scan flags pre-existing gitsubject exec patterns and a cross-file-taint heuristic; assessed as scanner false positives.
 
 ## Exit Criteria
